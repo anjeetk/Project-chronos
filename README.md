@@ -1,11 +1,6 @@
 # Project_Chronos (GTBIT)
 
 Welcome to the Synapse_GBT project_Chronos! This repository contains tools for medical data analysis, model training, and a specialized "Surgical Black Box" simulation system with a real-time monitoring dashboard.
-=======
-# Synapse GTB (HackIndia)
-
-Welcome to the Synapse GTB project! This repository contains tools for medical data analysis, model training, and a specialized "Surgical Black Box" simulation system with a real-time monitoring dashboard.
->>>>>>> b9589ce52171ce882bbca4374828be41e3b16a10
 
 ## Project Structure
 
