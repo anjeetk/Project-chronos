@@ -349,10 +349,12 @@ const VideoPlayer = forwardRef(function VideoPlayer({
         {liveMode && (
           <div style={{ flex: 1, position: 'relative', background: 'var(--bg-abyss)' }}>
             <img
-              src={`${API_BASE}/api/stream?t=${Date.now()}`}
+              src={streamError ? `${API_BASE}/api/snapshot?t=${currentTime}` : `${API_BASE}/api/stream?t=${Date.now()}`}
               alt="Live Camera Feed"
               onError={() => setStreamError(true)}
-              onLoad={() => setStreamError(false)}
+              onLoad={() => {
+                // If we were in error/polling mode, keep refreshing snapshots
+              }}
               style={{
                 width: '100%',
                 height: '100%',
@@ -362,14 +364,11 @@ const VideoPlayer = forwardRef(function VideoPlayer({
             />
             {streamError && (
               <div style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(0,0,0,0.85)', color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-mono)', fontSize: '13px', gap: '8px',
+                position: 'absolute', top: 40, left: 16, zIndex: 12,
+                background: 'rgba(255,165,0,0.2)', color: 'orange', padding: '2px 8px', borderRadius: 4,
+                fontSize: '10px', fontFamily: 'var(--font-mono)', border: '1px solid orange'
               }}>
-                <span style={{ fontSize: '32px' }}>📷</span>
-                <span>Camera stream unavailable</span>
-                <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Check backend is running on :8000</span>
+                POLLING MODE (SERVERLESS)
               </div>
             )}
 

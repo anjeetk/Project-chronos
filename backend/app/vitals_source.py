@@ -40,11 +40,11 @@ class VitalsSource:
 
         self.idx = 0
 
-    def next(self) -> dict:
-        """Return next vitals reading, looping at end.
-
-        Normalizes MIMIC field names to the canonical format:
-          hr, spo2, bp_sys, bp_dia
+    def next(self, seq: int | None = None) -> dict:
+        """Return next vitals reading.
+        
+        If seq is provided, returns that specific index (modulo length).
+        Otherwise, returns next in internal sequence.
         """
         if not self.data:
             # Synthetic fallback
@@ -56,8 +56,11 @@ class VitalsSource:
                 "spo2": random.randint(95, 100),
             }
 
-        reading = self.data[self.idx % len(self.data)]
-        self.idx += 1
+        idx = seq if seq is not None else self.idx
+        reading = self.data[idx % len(self.data)]
+        
+        if seq is None:
+            self.idx += 1
 
         # Map MIMIC-IV extracted_vitals fields → canonical names
         return {

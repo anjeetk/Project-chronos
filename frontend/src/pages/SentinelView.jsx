@@ -188,10 +188,52 @@ export default function SentinelView() {
     }
 
     ws.onerror = () => {
+      console.warn('[WS] Error, falling back to polling if live')
       ws.close()
       wsRef.current = null
     }
   }, [])
+
+  // ── Polling Fallback for Serverless ──
+  const pollTick = useCallback(async () => {
+    if (mode !== 'live' || wsRef.current) return
+    
+    try {
+      const res = await fetch(`${API_BASE}/api/tick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: liveSessionId })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setLiveSeq(data.seq)
+        setLiveVitals(data.vitals)
+        setLiveLatestHash(data.chain_hash)
+        setLiveElapsed(prev => prev + 1)
+        setLiveChain(prev => {
+           const entry = {
+             seq: data.seq,
+             chain_hash: data.chain_hash,
+             vitals: data.vitals,
+             timestamp: data.seq, // assume 1s per seq for simplicity
+             session_id: data.session_id,
+           }
+           const next = [...prev, entry]
+           return next.length > 200 ? next.slice(-200) : next
+        })
+      }
+    } catch (e) {
+      console.error('[POLL] Tick failed:', e)
+    }
+  }, [mode, liveSessionId, wsRef])
+
+  useEffect(() => {
+    let timer
+    if (mode === 'live' && !wsRef.current) {
+      timer = setInterval(pollTick, 1000)
+    }
+    return () => clearInterval(timer)
+  }, [mode, wsRef.current, pollTick])
 
   // ── Start Operation ──
   const confirmStartOperation = async () => {

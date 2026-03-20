@@ -10,12 +10,15 @@ Endpoints:
   POST /api/stop                — stop recording session
   POST /api/verify/{session_id} — re-verify a session's chain integrity
   POST /api/tamper/{session_id}/{seq} — simulate tampering
+  GET  /api/snapshot             — single JPEG frame (polling fallback)
+  POST /api/tick                 — process one pipeline tick (serverless fallback)
 """
 
 import asyncio
 import os
 import json
 import time
+import uuid
 from enum import Enum
 from typing import cast, Dict, Any, Optional, List
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -71,7 +74,22 @@ def set_live_state(session_id, seq, latest_hash, prev_hash, batches, running=Tru
 
 @app.get("/api/health")
 async def health():
-    return {"ok": True, "camera_mode": get_mode()}
+    return {
+        "ok": True, 
+        "camera_mode": get_mode(),
+        "deployment": "vercel" if os.getenv("VERCEL") else "local"
+    }
+
+
+@app.get("/api/snapshot")
+async def snapshot():
+    """Return a single JPEG frame for polling-based streaming."""
+    if not camera_is_running():
+        camera_start()
+    jpeg_bytes = get_jpeg()
+    if not jpeg_bytes:
+        raise HTTPException(status_code=503, detail="Camera not ready")
+    return StreamingResponse(iter([jpeg_bytes]), media_type="image/jpeg")
 
 
 @app.get("/api/status")
@@ -305,6 +323,60 @@ async def tamper_record(
             raise HTTPException(status_code=400, detail="Cannot reorder last record")
 
     return {"status": "tampered", "mode": mode.value, "seq": seq}
+
+
+@app.post("/api/tick")
+async def pipeline_tick(session_id: Optional[str] = None):
+    """
+    Process a single pipeline iteration (capture -> hash -> store).
+    Used for serverless deployments where background threads aren't reliable.
+    """
+    from .main import get_frame, VitalsSource, ChainState, process_one, CHAIN_GENESIS
+    from .config import BASE_DATA_DIR
+
+    # 1. State Management (Ephemeral in serverless, so we might need to load/save)
+    if not session_id:
+        session_id = str(uuid.uuid4())
+    
+    session_dir = os.path.join(BASE_DATA_DIR, session_id)
+    manifest_path = os.path.join(session_dir, "manifest.json")
+
+    # Load existing state if manifest exists
+    manifest = {"records": [], "merkle_batches": []}
+    try:
+        manifest = load_manifest(manifest_path)
+    except Exception:
+        pass # New session
+    
+    # Recalculate chain state from manifest
+    state = ChainState(genesis=CHAIN_GENESIS)
+    if manifest and manifest.get("records"):
+        last_rec = manifest["records"][-1]
+        state.seq = last_rec["seq"] + 1
+        state.prev_hash = bytes.fromhex(last_rec["chain_hash"])
+
+    # 2. Capture & Process
+    if not camera_is_running():
+        camera_start()
+    
+    frame = get_frame()
+    v_source = VitalsSource()
+    vitals = v_source.next(seq=state.seq) 
+    
+    rec = process_one(frame, vitals, state, session_dir)
+    manifest["records"].append(rec)
+    
+    # 3. Save
+    save_manifest(manifest, manifest_path)
+    
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "seq": rec["seq"],
+        "chain_hash": rec["chain_hash"],
+        "vitals": vitals
+    }
+
 
 # ── Static File Overlay (Deployment) ──
 if os.path.exists(FRONTEND_DIST):
