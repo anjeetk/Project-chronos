@@ -1,0 +1,61 @@
+{
+  "genesis_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "merkle_batches": [],
+  "records": [
+    {
+      "chain_hash": "31afe49ede853134e0a3bf9e857807d09a82cba2fbfd2e7e89e5de9a977556a2",
+      "frame": "frames/0.jpg",
+      "frame_sha256": "fc70083a0d514ed927cd9fd80d4526864219a8a102108115e9438ebff18bd334",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "seq": 0,
+      "ts": 1773948870,
+      "vitals": "vitals/0.json"
+    },
+    {
+      "chain_hash": "203ee92b22fa21661ce4f115f79f2dd410739189c8d95d5e0898ff3120346543",
+      "frame": "frames/1.jpg",
+      "frame_sha256": "1939a4425f3a99cd393b02f64f5ff3a0b20a58732e58a33739d7582a592a5384",
+      "prev_hash": "31afe49ede853134e0a3bf9e857807d09a82cba2fbfd2e7e89e5de9a977556a2",
+      "seq": 1,
+      "ts": 1773948871,
+      "vitals": "vitals/1.json"
+    },
+    {
+      "chain_hash": "8769e9f6f800574d1c99caf05bef2f9d67b85b4618e16741ec2e328804ab8ff5",
+      "frame": "frames/2.jpg",
+      "frame_sha256": "77d1577d60744bb4629dcf79b3d3a485a5c3568498f687f97c699e48e04eb208",
+      "prev_hash": "203ee92b22fa21661ce4f115f79f2dd410739189c8d95d5e0898ff3120346543",
+      "seq": 2,
+      "ts": 1773948872,
+      "vitals": "vitals/2.json"
+    },
+    {
+      "chain_hash": "fd569dc3792c8b8c2e3b590484f53d645f6dee438c585f2a6b48bdd072d385e4",
+      "frame": "frames/3.jpg",
+      "frame_sha256": "d69be2bd6a00a5376d92f84e92032ed9e4ae1b6080007a3cce239afd0128f3e2",
+      "prev_hash": "8769e9f6f800574d1c99caf05bef2f9d67b85b4618e16741ec2e328804ab8ff5",
+      "seq": 3,
+      "ts": 1773948873,
+      "vitals": "vitals/3.json"
+    },
+    {
+      "chain_hash": "a6bf5569a91cccdbb1071dbc43a51c80d9f6a4e0dfa0637cc413bdee13c45fec",
+      "frame": "frames/4.jpg",
+      "frame_sha256": "452fbd0cb708a62a9427dacb67eabec79d6245c1b351503f7598c7f1ece6c14a",
+      "prev_hash": "fd569dc3792c8b8c2e3b590484f53d645f6dee438c585f2a6b48bdd072d385e4",
+      "seq": 4,
+      "ts": 1773948874,
+      "vitals": "vitals/4.json"
+    },
+    {
+      "chain_hash": "ad29abaf9483970910c18d2d364ff4ab9178af16d1efcf156b64469aab06c9d1",
+      "frame": "frames/5.jpg",
+      "frame_sha256": "45db8d377b597dc48d3d804b38b42fc3d940836c073a4ef67aa7abbc506e68d4",
+      "prev_hash": "a6bf5569a91cccdbb1071dbc43a51c80d9f6a4e0dfa0637cc413bdee13c45fec",
+      "seq": 5,
+      "ts": 1773948875,
+      "vitals": "vitals/5.json"
+    }
+  ],
+  "session_id": "d35db403-7073-4266-ab73-c237e0f4fe97"
+}

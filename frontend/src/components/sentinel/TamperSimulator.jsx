@@ -1,6 +1,41 @@
-import { motion } from 'framer-motion'
+/**
+ * TamperSimulator.jsx — Enhanced tamper simulation with mode selection.
+ *
+ * Supports 4 modes: modify_vitals, modify_frame, delete_frame, reorder
+ * Calls backend POST /api/tamper/{session_id}/{seq}?mode=...
+ */
 
-export default function TamperSimulator() {
+import { motion } from 'framer-motion'
+import { useState } from 'react'
+
+const API_BASE = 'http://localhost:8000'
+
+const TAMPER_MODES = [
+  { id: 'modify_vitals', label: '💉 Modify Vitals', desc: 'Increase HR by +20 BPM' },
+  { id: 'modify_frame', label: '🖼 Corrupt Frame', desc: 'Overwrite bytes 100-200' },
+  { id: 'delete_frame', label: '🗑 Delete Frame', desc: 'Remove JPEG from disk' },
+  { id: 'reorder', label: '🔀 Reorder Attack', desc: 'Swap vitals with next record' },
+]
+
+export default function TamperSimulator({ tamperInfo = null, onTamper = null }) {
+  const [selectedMode, setSelectedMode] = useState('modify_vitals')
+  const [tamperResult, setTamperResult] = useState(null)
+
+  async function executeTamper(sessionId, seq) {
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/tamper/${sessionId}/${seq}?mode=${selectedMode}`,
+        { method: 'POST' }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        setTamperResult(data)
+      }
+    } catch (e) {
+      console.error('Tamper failed:', e)
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -66,15 +101,45 @@ export default function TamperSimulator() {
           HASH CHAIN INTEGRITY COMPROMISED
         </div>
 
-        <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '11px',
-          color: 'var(--text-dim)',
-          marginTop: '8px',
-          letterSpacing: '1px',
-        }}>
-          TAMPER DETECTED AT FRAME 847 / BLOCK 0x3fa2...e9c1
-        </div>
+        {/* Tamper mode details */}
+        {tamperInfo && (
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '11px',
+            color: 'var(--text-dim)',
+            marginTop: '8px',
+            letterSpacing: '1px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+          }}>
+            <div>MODE: {tamperInfo.mode?.toUpperCase() || 'UNKNOWN'}</div>
+            <div>SEQ: {tamperInfo.seq ?? 'N/A'} | SESSION: {tamperInfo.session_id?.slice(0, 8) || '???'}...</div>
+            {tamperInfo.expected && tamperInfo.got && (
+              <>
+                <div style={{ color: 'var(--color-stable)' }}>
+                  EXPECTED: {tamperInfo.expected?.slice(0, 24)}...
+                </div>
+                <div style={{ color: 'var(--color-critical)' }}>
+                  GOT: {tamperInfo.got?.slice(0, 24)}...
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {!tamperInfo && (
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '11px',
+            color: 'var(--text-dim)',
+            marginTop: '8px',
+            letterSpacing: '1px',
+          }}>
+            TAMPER DETECTED AT FRAME 847 / BLOCK 0x3fa2...e9c1
+          </div>
+        )}
       </motion.div>
 
       {/* Corner warnings */}
@@ -99,3 +164,5 @@ export default function TamperSimulator() {
     </motion.div>
   )
 }
+
+export { TAMPER_MODES }

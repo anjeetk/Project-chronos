@@ -4,9 +4,10 @@ import TriageRadar from '../components/chronos/TriageRadar'
 import CrashOdometer from '../components/chronos/CrashOdometer'
 import ShapExplainer from '../components/chronos/ShapExplainer'
 import VitalsTicker from '../components/chronos/VitalsTicker'
-import GenerateAccessQR from '../components/chronos/GenerateAccessQR'
+import SimulationDashboard from '../components/chronos/SimulationDashboard'
 import { patients } from '../data/mockChronosData'
 import { playCriticalBeep, playNavClick } from '../utils/sounds'
+import { BarChart3 } from 'lucide-react'
 
 // Realistic vital fluctuation config
 const VITAL_SIM = {
@@ -32,6 +33,7 @@ function simulateVitals(base, status) {
 
 export default function ChronosView({ onRiskChange }) {
   const [selectedId, setSelectedId] = useState(patients[0].id)
+  const [showSimulation, setShowSimulation] = useState(false)
   
   // Live patients with fluctuating risk scores
   const [livePatients, setLivePatients] = useState(patients)
@@ -135,7 +137,7 @@ export default function ChronosView({ onRiskChange }) {
       gridTemplateColumns: '1fr 380px',
       gridTemplateRows: '1fr auto',
       gap: '16px',
-      height: 'calc(100vh - 56px)',
+      height: 'calc(100vh - 84px)',
       padding: '16px',
       position: 'relative',
       zIndex: 1,
@@ -172,7 +174,6 @@ export default function ChronosView({ onRiskChange }) {
             }}>ICU Predictive Command Center</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <GenerateAccessQR patientId={selectedPatient.id} inline={true} />
             <StatusIndicator status={selectedPatient.status} />
             <CrashOdometer value={selectedPatient.aggregateRisk} />
           </div>
@@ -191,21 +192,48 @@ export default function ChronosView({ onRiskChange }) {
           />
           {/* Patient info overlay */}
           <div className="absolute bottom-6 left-6 flex flex-col gap-3 w-80 z-40">
-            <div className="bg-slate-900/60 backdrop-blur-xl px-6 py-5 rounded-xl border border-white/10 shadow-2xl relative overflow-hidden flex flex-col items-center text-center">
+            <div className="glass px-6 py-5 rounded-xl shadow-2xl relative overflow-hidden flex flex-col items-center text-center">
               {/* Decorative accent line */}
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500/50"></div>
+              <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: 'var(--color-brand-accent)' }}></div>
               
-              <div className="text-[10px] text-emerald-400 font-mono tracking-[0.2em] mb-1">
+              <div style={{ color: 'var(--color-brand-accent)' }} className="text-[10px] font-mono tracking-[0.2em] mb-1">
                 SELECTED PATIENT
               </div>
-              <div className="text-xl font-bold text-white tracking-wide">
-                Bed {selectedPatient.bed} <span className="text-slate-500 mx-1">—</span> {selectedPatient.name}
+              <div className="text-xl font-bold tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
+                Bed {selectedPatient.bed} <span style={{ color: 'var(--color-text-tertiary)' }} className="mx-1">—</span> {selectedPatient.name}
               </div>
-              <div className="text-xs text-slate-400 mt-1.5 flex items-center justify-center gap-2">
+              <div className="text-xs mt-1.5 flex items-center justify-center gap-2" style={{ color: 'var(--color-text-secondary)' }}>
                 <span className="truncate">{selectedPatient.admitReason}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-600"></span>
+                <span className="w-1 h-1 rounded-full" style={{ background: 'var(--color-text-tertiary)' }}></span>
                 <span className="whitespace-nowrap">Age {selectedPatient.age}</span>
               </div>
+              {/* Simulation button */}
+              <button
+                onClick={() => setShowSimulation(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginTop: '10px',
+                  padding: '6px 16px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'linear-gradient(135deg, var(--color-brand-accent), var(--accent-blue))',
+                  border: 'none',
+                  color: '#fff',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '1px',
+                  cursor: 'pointer',
+                  transition: 'var(--transition-smooth)',
+                  boxShadow: '0 2px 12px rgba(45, 212, 191, 0.3)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(45, 212, 191, 0.5)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(45, 212, 191, 0.3)' }}
+              >
+                <BarChart3 size={12} />
+                VIEW SIMULATION
+              </button>
             </div>
           </div>
         </div>
@@ -235,6 +263,14 @@ export default function ChronosView({ onRiskChange }) {
       <div style={{ gridColumn: '1', gridRow: '2' }}>
         <VitalsTicker vitals={liveVitals} history={liveHistory} status={selectedPatient.status} />
       </div>
+
+      {/* Simulation Dashboard Overlay */}
+      {showSimulation && (
+        <SimulationDashboard
+          patient={selectedPatient}
+          onBack={() => setShowSimulation(false)}
+        />
+      )}
     </div>
   )
 }

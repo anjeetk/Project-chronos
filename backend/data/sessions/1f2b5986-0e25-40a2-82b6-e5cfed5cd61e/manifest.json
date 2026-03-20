@@ -1,0 +1,25 @@
+{
+  "genesis_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "merkle_batches": [],
+  "records": [
+    {
+      "chain_hash": "7d0c9aee4355246facd14cb02a23c4b4de9f6c73af1ca3e31af7c1289de1d7cc",
+      "frame": "frames/0.jpg",
+      "frame_sha256": "d9f51b3f0ec4d1f49aadbf95a9f44be4bd3ad3c8d91fcb0bdfc13aa7cb217c14",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "seq": 0,
+      "ts": 1773962755,
+      "vitals": "vitals/0.json"
+    },
+    {
+      "chain_hash": "af08c86496d415f88bb1c6113bf0a0d2e1a2d2f379160229b7149ccfb92b0263",
+      "frame": "frames/1.jpg",
+      "frame_sha256": "e42d512a7cbf1bd7330bdb2df27e0bbd3b940459aee5c6ac84b7855b6eb825c7",
+      "prev_hash": "7d0c9aee4355246facd14cb02a23c4b4de9f6c73af1ca3e31af7c1289de1d7cc",
+      "seq": 1,
+      "ts": 1773962756,
+      "vitals": "vitals/1.json"
+    }
+  ],
+  "session_id": "1f2b5986-0e25-40a2-82b6-e5cfed5cd61e"
+}

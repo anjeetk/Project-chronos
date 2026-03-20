@@ -2,11 +2,11 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts'
 import { Heart, Wind, Droplets, Activity, Thermometer } from 'lucide-react'
 
 const VITAL_CONFIG = [
-  { key: 'heart_rate', label: 'Heart Rate', unit: 'BPM', icon: Heart, color: '#ff2d55', critical: v => v > 110 || v < 50 },
-  { key: 'spo2', label: 'SpO2', unit: '%', icon: Droplets, color: '#007aff', critical: v => v < 92 },
-  { key: 'map', label: 'MAP', unit: 'mmHg', icon: Activity, color: '#bf5af2', critical: v => v < 60 },
-  { key: 'lactate', label: 'Lactate', unit: 'mmol/L', icon: Thermometer, color: '#fbbf24', critical: v => v > 2.0 },
-  { key: 'respiratory_rate', label: 'Resp. Rate', unit: '/min', icon: Wind, color: '#34d399', critical: v => v > 30 },
+  { key: 'heart_rate', label: 'Heart Rate', unit: 'BPM', icon: Heart, color: 'var(--accent-red)', critical: v => v > 110 || v < 50 },
+  { key: 'spo2', label: 'SpO2', unit: '%', icon: Droplets, color: 'var(--accent-blue)', critical: v => v < 92 },
+  { key: 'map', label: 'MAP', unit: 'mmHg', icon: Activity, color: 'var(--accent-purple)', critical: v => v < 60 },
+  { key: 'lactate', label: 'Lactate', unit: 'mmol/L', icon: Thermometer, color: 'var(--accent-amber)', critical: v => v > 2.0 },
+  { key: 'respiratory_rate', label: 'Resp. Rate', unit: '/min', icon: Wind, color: 'var(--accent-green)', critical: v => v > 30 },
 ]
 
 export default function VitalsTicker({ vitals, history, status }) {
@@ -30,7 +30,7 @@ export default function VitalsTicker({ vitals, history, status }) {
               padding: '14px 16px',
               position: 'relative',
               overflow: 'hidden',
-              borderColor: isCritical ? `${cfg.color}44` : 'var(--glass-border)',
+              borderColor: isCritical ? `color-mix(in srgb, ${cfg.color}, transparent 70%)` : 'var(--color-border-subtle)',
               transition: 'var(--transition-smooth)',
             }}
           >
@@ -39,7 +39,7 @@ export default function VitalsTicker({ vitals, history, status }) {
               <div style={{
                 position: 'absolute',
                 inset: 0,
-                background: `radial-gradient(ellipse at center, ${cfg.color}15, transparent 70%)`,
+                background: `radial-gradient(ellipse at center, color-mix(in srgb, ${cfg.color}, transparent 85%), transparent 70%)`,
                 pointerEvents: 'none',
               }} />
             )}
@@ -51,10 +51,10 @@ export default function VitalsTicker({ vitals, history, status }) {
               marginBottom: '8px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Icon size={12} color={isCritical ? cfg.color : 'var(--text-dim)'} />
+                <Icon size={12} color={isCritical ? cfg.color : 'var(--color-text-tertiary)'} />
                 <span style={{
                   fontSize: '10px',
-                  color: 'var(--text-dim)',
+                  color: 'var(--color-text-tertiary)',
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
                   fontFamily: 'var(--font-mono)',
@@ -77,7 +77,7 @@ export default function VitalsTicker({ vitals, history, status }) {
                 style={{
                   fontSize: '28px',
                   fontWeight: 800,
-                  color: isCritical ? cfg.color : 'var(--text-primary)',
+                  color: isCritical ? cfg.color : 'var(--color-text-primary)',
                   fontFamily: 'var(--font-display)',
                   letterSpacing: '-1px',
                   lineHeight: '28px',
@@ -87,7 +87,7 @@ export default function VitalsTicker({ vitals, history, status }) {
               </span>
               <span style={{
                 fontSize: '11px',
-                color: 'var(--text-dim)',
+                color: 'var(--color-text-tertiary)',
               }}>{cfg.unit}</span>
             </div>
 
@@ -97,14 +97,14 @@ export default function VitalsTicker({ vitals, history, status }) {
                 <AreaChart data={sparkData}>
                   <defs>
                     <linearGradient id={`grad-${cfg.key}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={isCritical ? cfg.color : `${cfg.color}88`} stopOpacity={0.4} />
-                      <stop offset="95%" stopColor={isCritical ? cfg.color : `${cfg.color}88`} stopOpacity={0} />
+                      <stop offset="5%" stopColor={`color-mix(in srgb, ${cfg.color}, white 20%)`} stopOpacity={0.4} />
+                      <stop offset="95%" stopColor={cfg.color} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <Area
                     type="monotone"
                     dataKey="v"
-                    stroke={isCritical ? cfg.color : `${cfg.color}88`}
+                    stroke={cfg.color}
                     fillOpacity={1}
                     fill={`url(#grad-${cfg.key})`}
                     strokeWidth={1.5}

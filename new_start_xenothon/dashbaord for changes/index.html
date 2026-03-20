@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronos ICU Demo Dashboard</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Chronos ICU Demo</p>
+        <h1>Simple local dashboard for one-minute patient simulation</h1>
+        <p class="subtext">
+          Built from the Chronos notebook feature set and the ERD. No auth, no backend, localStorage only.
+        </p>
+      </div>
+      <div class="hero-controls">
+        <button id="startSimulationBtn" class="primary">Start simulation</button>
+        <button id="pauseSimulationBtn">Pause</button>
+        <button id="resetSimulationBtn">Reset</button>
+      </div>
+    </header>
+
+    <section class="top-strip">
+      <div class="panel control-panel">
+        <div class="panel-header">
+          <h2>Simulation controls</h2>
+          <span id="simulationStatus" class="status-pill">Paused</span>
+        </div>
+        <div class="meta-grid">
+          <div>
+            <span class="label">Clock</span>
+            <strong id="simulationClock">08:00</strong>
+          </div>
+          <div>
+            <span class="label">Tick</span>
+            <strong id="simulationTick">0 / 60</strong>
+          </div>
+          <div>
+            <span class="label">1 second equals</span>
+            <strong>1 hour</strong>
+          </div>
+          <div>
+            <span class="label">Alert rule</span>
+            <strong>Risk &gt;= 85% rings</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Feature extraction</h2>
+          <span class="status-pill neutral">46 dynamic notebook features</span>
+        </div>
+        <p class="subtext compact">
+          Dynamic values come from <code>chronos.ipynb</code>. Constant values are hardcoded per patient for demo use.
+        </p>
+        <div id="dynamicFeatureList" class="chip-wrap"></div>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <aside class="left-column">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>ICU ward overview</h2>
+            <span id="topRiskBadge" class="status-pill warning">Waiting</span>
+          </div>
+          <div id="wardSummary" class="summary-grid"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Staff duty timings</h2>
+            <span class="status-pill neutral">Editable + saved locally</span>
+          </div>
+          <div id="staffDutyList" class="stack"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Patient ranking</h2>
+            <span class="status-pill neutral">Highest risk first</span>
+          </div>
+          <div id="patientList" class="patient-list"></div>
+        </div>
+      </aside>
+
+      <main class="right-column">
+        <div class="panel selected-patient-panel">
+          <div class="panel-header">
+            <div>
+              <h2 id="selectedPatientName">Select a patient</h2>
+              <p id="selectedPatientMeta" class="subtext compact"></p>
+            </div>
+            <div id="selectedPatientRisk" class="risk-block">
+              <strong>--</strong>
+              <span>Risk</span>
+            </div>
+          </div>
+
+          <div class="selected-top-grid">
+            <div class="mini-panel">
+              <span class="label">Predicted event</span>
+              <strong id="selectedEvent">--</strong>
+            </div>
+            <div class="mini-panel">
+              <span class="label">Timeline</span>
+              <strong id="selectedTimeline">--</strong>
+            </div>
+            <div class="mini-panel">
+              <span class="label">Assigned doctors</span>
+              <strong id="selectedDoctors">--</strong>
+            </div>
+            <div class="mini-panel">
+              <span class="label">Assigned nurses</span>
+              <strong id="selectedNurses">--</strong>
+            </div>
+          </div>
+
+          <div class="detail-grid">
+            <div class="mini-panel">
+              <div class="panel-header">
+                <h3>Top 3 SHAP drivers</h3>
+              </div>
+              <div id="shapList" class="stack"></div>
+            </div>
+
+            <div class="mini-panel">
+              <div class="panel-header">
+                <h3>Patient info</h3>
+              </div>
+              <div id="patientInfo" class="stack compact-stack"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Notifications</h2>
+            <span class="status-pill neutral">Ringing on duty, silent off duty</span>
+          </div>
+          <div id="notificationList" class="stack"></div>
+        </div>
+
+        <div class="action-grid">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Doctor instructions</h2>
+            </div>
+            <form id="instructionForm" class="form-grid">
+              <label>
+                Doctor
+                <select id="instructionDoctorId"></select>
+              </label>
+              <label class="full-width">
+                Instruction
+                <textarea id="instructionText" rows="3" placeholder="Example: monitor urine output, avoid oily food, review BP in 1 hour"></textarea>
+              </label>
+              <button type="submit" class="primary">Add instruction</button>
+            </form>
+            <div id="instructionList" class="stack"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Nurse administered log</h2>
+            </div>
+            <form id="administerForm" class="form-grid">
+              <label>
+                Nurse
+                <select id="administerNurseId"></select>
+              </label>
+              <label>
+                Doctor
+                <select id="administerDoctorId"></select>
+              </label>
+              <label class="full-width">
+                What was administered
+                <input id="administerMedicine" type="text" placeholder="Example: Saline 500 ml or ceftriaxone injection">
+              </label>
+              <button type="submit" class="primary">Log administered item</button>
+            </form>
+            <div id="administerList" class="stack"></div>
+          </section>
+        </div>
+
+        <div class="action-grid">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Complaints</h2>
+            </div>
+            <form id="complaintForm" class="form-grid">
+              <label>
+                Complaint target
+                <select id="complaintTarget">
+                  <option value="nurse">Nurse</option>
+                  <option value="complaint-desk">Complaint desk</option>
+                </select>
+              </label>
+              <label class="full-width">
+                Complaint text
+                <textarea id="complaintText" rows="3" placeholder="Example: IV line discomfort, bed adjustment needed, noise complaint"></textarea>
+              </label>
+              <button type="submit" class="primary">Submit complaint</button>
+            </form>
+            <div id="complaintList" class="stack"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>46 live parameters</h2>
+            </div>
+            <div id="parameterTable" class="parameter-table"></div>
+          </section>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

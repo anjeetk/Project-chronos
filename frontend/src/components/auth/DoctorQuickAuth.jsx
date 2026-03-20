@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShieldCheck, Stethoscope, Mail, Lock, User, ArrowRight, AlertCircle, Loader2, CheckCircle2, Zap } from 'lucide-react'
+import { ShieldCheck, Stethoscope, Mail, Lock, User, ArrowRight, AlertCircle, Loader2, CheckCircle2, Zap, LayoutDashboard, HeartPulse } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import ThemeToggle from '../shared/ThemeToggle'
 
@@ -8,6 +8,13 @@ const PHASES = {
   INPUT: 'input',
   VERIFYING: 'verifying',
   SUCCESS: 'success',
+}
+
+// Pre-filled credentials for MVP
+const PREFILLED = {
+  doctor: { email: 'doc@synapse.med', password: 'password123', name: 'Dr. Sarah Chen' },
+  nurse: { email: 'nurse@synapse.med', password: 'password123', name: 'Nurse Thompson' },
+  patient: { email: 'patient@synapse.med', password: 'password123', name: 'R. Sharma (P-1042)' },
 }
 
 // Particle system for background
@@ -120,6 +127,7 @@ function ScanLine({ active }) {
 export default function DoctorQuickAuth() {
   const { login, signup } = useAuth()
   const [phase, setPhase] = useState(PHASES.INPUT)
+  const [role, setRole] = useState('doctor') // 'doctor', 'nurse', 'patient'
   
   // Auth Form State
   const [isLogin, setIsLogin] = useState(true)
@@ -130,6 +138,14 @@ export default function DoctorQuickAuth() {
   
   const [scanProgress, setScanProgress] = useState(0)
   const [displayedName, setDisplayedName] = useState('Doctor')
+
+  // Auto-fill credentials when role changes
+  useEffect(() => {
+    if (isLogin && PREFILLED[role]) {
+      setEmail(PREFILLED[role].email)
+      setPassword(PREFILLED[role].password)
+    }
+  }, [role, isLogin])
 
   // Simulate verification scan
   useEffect(() => {
@@ -167,30 +183,55 @@ export default function DoctorQuickAuth() {
 
     setPhase(PHASES.VERIFYING)
     
-    // Default to 'Doctor' for login display
-    setDisplayedName(isLogin ? email.split('@')[0] : name)
+    setDisplayedName(isLogin ? (PREFILLED[role]?.name || email.split('@')[0]) : name)
 
     try {
-      // Small artificial delay to show off the scanning animation
       await new Promise(resolve => setTimeout(resolve, 2200)) 
       
       let res;
       if (isLogin) {
-        res = await login(email.trim(), password)
+        try {
+          res = await login(email.trim(), password)
+        } catch (loginErr) {
+          // Auto-provision: if credentials don't exist, create the account automatically
+          if (loginErr.message?.includes('Invalid login credentials')) {
+            const displayName = PREFILLED[role]?.name || name || email.split('@')[0]
+            res = await signup(email.trim(), password, displayName, { role })
+            // If signup returns a user but no session (email confirmation required), try logging in again
+            if (res.user && !res.session) {
+              // For Supabase projects with email confirmation disabled, signup auto-logs in.
+              // If confirmation IS required, we try login once more as a fallback.
+              try {
+                res = await login(email.trim(), password)
+              } catch (_) {
+                // Session was already established by signup
+              }
+            }
+          } else {
+            throw loginErr
+          }
+        }
       } else {
-        res = await signup(email.trim(), password, name.trim())
+        // Automatically inject role into metadata during signup
+        res = await signup(email.trim(), password, name.trim(), { role })
         if (res.user && res.session === null) {
           throw new Error("Check your email for confirmation link.")
         }
       }
       
-      if (res.user?.user_metadata?.name) {
+      if (res?.user?.user_metadata?.name) {
          setDisplayedName(res.user.user_metadata.name)
       }
-      
-      setPhase(PHASES.SUCCESS)
+
+      if (res?.isGuest) {
+        setPhase(PHASES.SUCCESS)
+        setError('Rate limit exceeded. Activated Guest Mode for demo.')
+        // Keep the success phase but show the warning
+      } else {
+        setPhase(PHASES.SUCCESS)
+      }
     } catch (err) {
-      setError(err.message || 'Authentication failed')
+      setError(err.message || 'Authentication failed. Make sure user exists.')
       setPhase(PHASES.INPUT)
     }
   }
@@ -200,7 +241,7 @@ export default function DoctorQuickAuth() {
     { label: 'Verifying with biometric vault', threshold: 30 },
     { label: 'Cross-referencing database', threshold: 55 },
     { label: 'Establishing encrypted session', threshold: 75 },
-    { label: 'Granting access privileges', threshold: 90 },
+    { label: `Granting ${role} privileges`, threshold: 90 },
   ]
 
   const inputStyle = {
@@ -319,7 +360,7 @@ export default function DoctorQuickAuth() {
               transition={{ duration: 0.4 }}
             >
               {/* Header */}
-              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                 <motion.div
                   style={{
                     width: '72px',
@@ -330,7 +371,7 @@ export default function DoctorQuickAuth() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    margin: '0 auto 20px',
+                    margin: '0 auto 16px',
                   }}
                   animate={{
                     boxShadow: [
@@ -351,7 +392,7 @@ export default function DoctorQuickAuth() {
                   color: 'var(--text-primary)',
                   marginBottom: '8px',
                 }}>
-                  {isLogin ? 'Secure Gateway' : 'Doctor Registration'}
+                  {isLogin ? 'Secure Gateway' : 'Identity Registration'}
                 </h1>
                 <p style={{
                   fontSize: '13px',
@@ -359,8 +400,34 @@ export default function DoctorQuickAuth() {
                   fontFamily: 'var(--font-mono)',
                   letterSpacing: '0.5px',
                 }}>
-                  SYNAPSE GTB // COMMAND CENTER
+                  SYNAPSE GTB // {role.toUpperCase()}
                 </p>
+              </div>
+
+              {/* Role Selection Tabs */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '12px', border: '1px solid var(--color-border-subtle)' }}>
+                {[
+                  { id: 'doctor', icon: Stethoscope, label: 'Doctor' },
+                  { id: 'nurse', icon: LayoutDashboard, label: 'Nurse' },
+                  { id: 'patient', icon: HeartPulse, label: 'Patient' }
+                ].map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => { setRole(r.id); setIsLogin(true); setError(''); }}
+                    style={{
+                      flex: 1, padding: '8px 0', borderRadius: '8px',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                      cursor: 'pointer', fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600,
+                      background: role === r.id ? 'var(--color-stable-bg)' : 'transparent',
+                      color: role === r.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      border: role === r.id ? '1px solid var(--color-stable)' : '1px solid transparent',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <r.icon size={16} color={role === r.id ? 'var(--color-stable)' : 'currentColor'} />
+                    {r.label}
+                  </button>
+                ))}
               </div>
 
               {/* Form */}
@@ -391,7 +458,7 @@ export default function DoctorQuickAuth() {
                           type="text"
                           value={name}
                           onChange={e => setName(e.target.value)}
-                          placeholder="Dr. Jane Smith"
+                          placeholder="Full Name"
                           style={inputStyle}
                           onFocus={handleInputFocus}
                           onBlur={handleInputBlur}
@@ -414,14 +481,14 @@ export default function DoctorQuickAuth() {
                     marginBottom: '8px',
                     fontFamily: 'var(--font-mono)',
                   }}>
-                    Medical Email
+                    {role === 'patient' ? 'Patient Email' : 'Medical Email'} (Pre-filled for Demo)
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type="email"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
-                      placeholder="dr.smith@hospital.org"
+                      placeholder="account@hospital.org"
                       style={inputStyle}
                       onFocus={handleInputFocus}
                       onBlur={handleInputBlur}
@@ -494,7 +561,9 @@ export default function DoctorQuickAuth() {
                     padding: '15px 24px',
                     borderRadius: '14px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, var(--color-stable), #22c55e)',
+                    background: role === 'doctor' ? 'linear-gradient(135deg, var(--color-stable), #22c55e)' : 
+                               role === 'nurse' ? 'linear-gradient(135deg, var(--accent-cyan), #38bdf8)' :
+                               'linear-gradient(135deg, var(--accent-purple), #c084fc)',
                     color: '#022c22',
                     fontSize: '15px',
                     fontWeight: 700,
@@ -505,12 +574,12 @@ export default function DoctorQuickAuth() {
                     justifyContent: 'center',
                     gap: '10px',
                     transition: 'all 300ms',
-                    boxShadow: '0 4px 20px rgba(52, 211, 153, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                    boxShadow: '0 4px 20px rgba(0,0,0, 0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
                     letterSpacing: '0.3px',
                   }}
                 >
                   <Zap size={18} strokeWidth={2.5} />
-                  {isLogin ? 'Authenticate & Enter' : 'Register Identity'}
+                  {isLogin ? `Log in as ${role.charAt(0).toUpperCase() + role.slice(1)}` : 'Register Identity'}
                   <ArrowRight size={18} />
                 </motion.button>
               </form>
@@ -723,7 +792,7 @@ export default function DoctorQuickAuth() {
                 color: 'var(--text-dim)',
                 fontFamily: 'var(--font-mono)',
               }}>
-                Redirecting to Command Center...
+                Redirecting...
               </p>
             </motion.div>
           )}
@@ -758,3 +827,4 @@ export default function DoctorQuickAuth() {
     </div>
   )
 }
+

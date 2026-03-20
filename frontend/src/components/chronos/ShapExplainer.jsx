@@ -17,17 +17,17 @@ export default function ShapExplainer({ features, patientId }) {
         marginBottom: '12px',
       }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '2px' }}>
+          <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', letterSpacing: '2px' }}>
             EXPLAINABLE AI
           </div>
           <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>
-            Why This Prediction? <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: '12px' }}>SHAP Feature Contributions</span>
+            Why This Prediction? <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400, fontSize: '12px' }}>SHAP Feature Contributions</span>
           </div>
         </div>
         <div style={{
           fontFamily: 'var(--font-mono)',
           fontSize: '10px',
-          color: 'var(--text-dim)',
+          color: 'var(--color-text-tertiary)',
           background: 'rgba(255,255,255,0.03)',
           padding: '4px 8px',
           borderRadius: 'var(--radius-sm)',
@@ -40,7 +40,7 @@ export default function ShapExplainer({ features, patientId }) {
           <YAxis
             type="category"
             dataKey="name"
-            tick={{ fill: '#f1f5f9', fontSize: 10, fontFamily: 'JetBrains Mono', fontWeight: 600, letterSpacing: '1px' }}
+            tick={{ fill: 'var(--color-text-secondary)', fontSize: 10, fontFamily: 'JetBrains Mono', fontWeight: 600, letterSpacing: '1px' }}
             width={130}
             axisLine={false}
             tickLine={false}
@@ -49,7 +49,7 @@ export default function ShapExplainer({ features, patientId }) {
             {data.map((entry, index) => (
               <Cell
                 key={index}
-                fill={entry.direction === 'risk' ? '#ff2d55' : '#34d399'}
+                fill={entry.direction === 'risk' ? 'var(--color-status-critical)' : 'var(--color-status-stable)'}
                 fillOpacity={0.7}
               />
             ))}
@@ -63,8 +63,8 @@ export default function ShapExplainer({ features, patientId }) {
         marginTop: '6px',
         justifyContent: 'center',
       }}>
-        <Legend color="#ff2d55" label="Risk Driver" />
-        <Legend color="#34d399" label="Protective" />
+        <Legend color="var(--color-status-critical)" label="Risk Driver" />
+        <Legend color="var(--color-status-stable)" label="Protective" />
       </div>
     </div>
   )
@@ -74,7 +74,7 @@ function Legend({ color, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
       <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: color, opacity: 0.7 }} />
-      <span style={{ fontSize: '9px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>{label}</span>
+      <span style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>{label}</span>
     </div>
   )
 }

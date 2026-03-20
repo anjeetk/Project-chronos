@@ -1,18 +1,24 @@
 import { useMemo, useEffect, useRef } from 'react'
 
-export default function HashMatrix({ auditTrail, currentIdx, tamperActive, finalHash }) {
+export default function HashMatrix({ auditTrail, currentIdx, tamperActive, finalHash, liveMode = false }) {
   const scrollRef = useRef()
 
-  // Auto-scroll to latest hash
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = 0
+      if (liveMode) {
+        // Auto-scroll to bottom in live mode to show latest hashes
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      } else {
+        scrollRef.current.scrollTop = 0
+      }
     }
-  }, [currentIdx])
+  }, [currentIdx, liveMode, auditTrail.length])
 
   const visibleHashes = useMemo(() => {
     return auditTrail.slice(Math.max(0, currentIdx - 30), currentIdx + 1).reverse()
   }, [auditTrail, currentIdx])
+
+  const selectedEntry = visibleHashes[0] || null
 
   return (
     <div className="glass" style={{
@@ -49,9 +55,24 @@ export default function HashMatrix({ auditTrail, currentIdx, tamperActive, final
         </div>
       </div>
 
+      {/* Chain formula */}
+      <div style={{
+        margin: '8px 14px 0',
+        padding: '6px 10px',
+        background: 'rgba(99, 102, 241, 0.06)',
+        border: '1px solid rgba(99, 102, 241, 0.15)',
+        borderRadius: 'var(--radius-sm)',
+        fontFamily: 'var(--font-mono)',
+        fontSize: '9px',
+        color: 'var(--text-secondary)',
+        letterSpacing: '0.5px',
+      }}>
+        H[n] = SHA256(canonical_json(&#123;seq, ts, frame_sha256, vitals, prev_hash&#125;))
+      </div>
+
       {/* Hash Summary */}
       <div style={{
-        margin: '10px 14px 0',
+        margin: '8px 14px 0',
         display: 'flex',
         flexDirection: 'column',
         gap: '6px'
@@ -100,6 +121,85 @@ export default function HashMatrix({ auditTrail, currentIdx, tamperActive, final
           }}>
             {tamperActive ? '0xef4d... [PAYLOAD ALTERED] ...f1c9 => MISMATCH' : finalHash}
           </div>
+        </div>
+      </div>
+
+      {/* Selected Entry: Prev/Current detail */}
+      {selectedEntry && (
+        <div style={{
+          margin: '6px 14px 0',
+          padding: '6px 10px',
+          background: 'var(--glass-bg)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: 'var(--radius-sm)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '3px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)',
+              fontWeight: 700, letterSpacing: '1px', width: 48, flexShrink: 0,
+            }}>PREV</span>
+            <span style={{
+              fontSize: '8px', fontFamily: 'var(--font-mono)', wordBreak: 'break-all',
+              color: 'var(--text-secondary)',
+            }}>
+              {selectedEntry.prev_hash || '0'.repeat(64)}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              fontSize: '8px', fontFamily: 'var(--font-mono)',
+              color: tamperActive ? 'var(--color-critical)' : 'var(--color-stable)',
+              fontWeight: 700, letterSpacing: '1px', width: 48, flexShrink: 0,
+            }}>CURR</span>
+            <span style={{
+              fontSize: '8px', fontFamily: 'var(--font-mono)', wordBreak: 'break-all',
+              color: tamperActive ? 'var(--color-critical)' : 'var(--text-primary)',
+            }}>
+              {selectedEntry.data_hash}
+            </span>
+          </div>
+          <div style={{
+            fontSize: '8px', fontFamily: 'var(--font-mono)', textAlign: 'right',
+            color: tamperActive ? 'var(--color-critical)' : 'var(--color-stable)',
+            fontWeight: 700,
+          }}>
+            {tamperActive ? '✗ BROKEN CHAIN LINK' : '✔ Valid Chain Link'}
+          </div>
+        </div>
+      )}
+
+      {/* Off-chain / On-chain labels */}
+      <div style={{
+        margin: '6px 14px 0',
+        display: 'flex',
+        gap: '6px',
+      }}>
+        <div style={{
+          flex: 1, padding: '5px 8px', borderRadius: 'var(--radius-sm)',
+          background: 'rgba(99, 102, 241, 0.06)', border: '1px solid rgba(99, 102, 241, 0.15)',
+          display: 'flex', flexDirection: 'column', gap: 2,
+        }}>
+          <span style={{ fontSize: '7px', fontFamily: 'var(--font-mono)', color: '#818cf8', fontWeight: 700, letterSpacing: '1px' }}>
+            OFF-CHAIN (IPFS)
+          </span>
+          <span style={{ fontSize: '7px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+            QmX7d...fP3r (mock CID)
+          </span>
+        </div>
+        <div style={{
+          flex: 1, padding: '5px 8px', borderRadius: 'var(--radius-sm)',
+          background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.15)',
+          display: 'flex', flexDirection: 'column', gap: 2,
+        }}>
+          <span style={{ fontSize: '7px', fontFamily: 'var(--font-mono)', color: '#f59e0b', fontWeight: 700, letterSpacing: '1px' }}>
+            ON-CHAIN (Polygon)
+          </span>
+          <span style={{ fontSize: '7px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+            0xMOCK_anchor...
+          </span>
         </div>
       </div>
 

@@ -1,0 +1,137 @@
+@startuml
+
+skinparam linetype ortho
+
+entity "Patient" as p {
+  *patient_id : number <<generated>>
+  --
+  name : text
+  age : number
+  qr_code : text
+  admission_type : text
+  ot_hash_final : text
+}
+
+entity "Doctor" as d {
+  *doctor_id : number <<generated>>
+  --
+  name : text
+  duty_start : time
+  duty_end : time
+}
+
+entity "Nurse" as n {
+  *nurse_id : number <<generated>>
+  --
+  name : text
+  duty_start : time
+  duty_end : time
+}
+
+entity "Unit" as u {
+  *unit_id : number <<generated>>
+  --
+  unit_type : text
+}
+
+entity "PatientDoctor" as pd {
+  *id : number <<generated>>
+  --
+  patient_id : number <<FK>>
+  doctor_id : number <<FK>>
+}
+
+entity "RiskPrediction" as rp {
+  *prediction_id : number <<generated>>
+  --
+  patient_id : number <<FK>>
+  risk_percentage : number
+  event : text
+  timeline : text
+  shap_1 : text
+  shap_2 : text
+  shap_3 : text
+  timestamp : datetime
+}
+
+entity "Notification" as nt {
+  *notification_id : number <<generated>>
+  --
+  doctor_id : number <<FK>>
+  patient_id : number <<FK>>
+  risk_score : number
+  type : text
+  time : datetime
+}
+
+entity "Administered" as ad {
+  *admin_id : number <<generated>>
+  --
+  patient_id : number <<FK>>
+  nurse_id : number <<FK>>
+  doctor_id : number <<FK>>
+  medicine : text
+  time : datetime
+}
+
+entity "Instruction" as ins {
+  *instruction_id : number <<generated>>
+  --
+  doctor_id : number <<FK>>
+  patient_id : number <<FK>>
+  text : text
+}
+
+entity "Complaint" as c {
+  *complaint_id : number <<generated>>
+  --
+  patient_id : number <<FK>>
+  nurse_id : number <<FK>>
+  status : text
+  resolved_by_patient : boolean
+  resolved_by_nurse : boolean
+}
+
+entity "OT_Block" as ot {
+  *block_id : number <<generated>>
+  --
+  patient_id : number <<FK>>
+  frame_hash : text
+  bp : number
+  spo2 : number
+  heart_rate : number
+  prev_hash : text
+  curr_hash : text
+}
+
+entity "Report" as r {
+  *report_id : number <<generated>>
+  --
+  patient_id : number <<FK>>
+  report_type : text
+  file : text
+}
+
+p }|..|| pd
+d }|..|| pd
+
+p }|..|| rp
+p }|..|| nt
+d }|..|| nt
+
+p }|..|| ad
+n }|..|| ad
+d }|..|| ad
+
+p }|..|| ins
+d }|..|| ins
+
+p }|..|| c
+n }|..|| c
+
+p }|..|| ot
+p }|..|| r
+
+u ||..o{ p
+
+@enduml

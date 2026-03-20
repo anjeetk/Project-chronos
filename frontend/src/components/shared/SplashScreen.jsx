@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-export default function SplashScreen({ onComplete }) {
+export default function SplashScreen({ onComplete, userName }) {
   const [phase, setPhase] = useState('logo') // logo → tagline → exit
   const [showParticles, setShowParticles] = useState(true)
 
@@ -128,7 +128,7 @@ export default function SplashScreen({ onComplete }) {
             marginBottom: '8px',
           }}
         >
-          Synapse GTB
+          {userName ? `Welcome, ${userName.split(' ')[0]}` : 'Synapse GTB'}
         </motion.h1>
 
         {/* Tagline with typewriter */}
@@ -144,7 +144,7 @@ export default function SplashScreen({ onComplete }) {
             textTransform: 'uppercase',
           }}
         >
-          DIGITAL TWIN COMMAND CENTER
+          {userName ? 'INITIALIZING CLINICAL COMMAND CENTER' : 'DIGITAL TWIN COMMAND CENTER'}
         </motion.div>
 
         {/* Loading bar */}

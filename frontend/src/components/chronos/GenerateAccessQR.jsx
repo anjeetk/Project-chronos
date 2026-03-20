@@ -105,10 +105,10 @@ export default function GenerateAccessQR({ patientId, inline = false }) {
           <div 
             className="relative flex flex-col items-center max-w-[420px] w-[90vw] rounded-2xl p-[28px]"
             style={{ 
-              background: 'rgba(15, 23, 30, 0.75)',
-              backdropFilter: 'blur(14px)',
-              border: '1px solid rgba(16,185,129,0.35)',
-              boxShadow: '0 0 0 1px rgba(16,185,129,0.15), 0 8px 40px rgba(0,0,0,0.6)',
+              background: 'var(--glass-bg)',
+              backdropFilter: 'var(--glass-blur)',
+              border: '1px solid var(--sidebar-item-active)',
+              boxShadow: 'var(--glass-shadow)',
               animation: 'cyber-entrance 0.25s ease-out forwards'
             }}
           >

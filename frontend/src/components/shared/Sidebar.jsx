@@ -4,7 +4,8 @@ import { Monitor, Shield, Settings, ChevronLeft, ChevronRight, LayoutDashboard, 
 import { playNavClick } from '../../utils/sounds'
 
 const NAV_ITEMS = [
-  { id: 'chronos', label: 'Project Chronos', subtitle: 'ICU Command', icon: Monitor, iconSrc: '/images/ProjectChronos.png' },
+  { id: 'chronos', label: 'Project Chronos', subtitle: 'ICU simulation', icon: Monitor, iconSrc: '/images/ProjectChronos.png' },
+  { id: 'command', label: 'Command Center', subtitle: 'ICU Operations', icon: LayoutDashboard },
   { id: 'sentinel', label: 'Project Sentinel', subtitle: 'Surgical Recorder', icon: Shield, iconSrc: '/images/ProjectSentinel.png' },
 ]
 
@@ -55,19 +56,23 @@ export default function Sidebar({ activeView, onNavigate, expanded, onToggleExpa
               }}
               title={!expanded ? item.label : undefined}
             >
-              <img
-                src={item.iconSrc}
-                alt={item.label}
-                className="sidebar-icon"
-                style={{
-                  width: '22px',
-                  height: '22px',
-                  objectFit: 'contain',
-                  opacity: isActive ? 1 : 0.5,
-                  filter: isActive ? 'drop-shadow(0 0 4px rgba(52,211,153,0.4))' : 'none',
-                  transition: 'all 0.3s',
-                }}
-              />
+              {item.iconSrc ? (
+                <img
+                  src={item.iconSrc}
+                  alt={item.label}
+                  className="sidebar-icon"
+                  style={{
+                    width: '22px',
+                    height: '22px',
+                    objectFit: 'contain',
+                    opacity: isActive ? 1 : 0.5,
+                    filter: isActive ? 'drop-shadow(0 0 4px rgba(52,211,153,0.4))' : 'none',
+                    transition: 'all 0.3s',
+                  }}
+                />
+              ) : (
+                item.icon && <item.icon className="sidebar-icon" size={20} color={isActive ? 'var(--color-brand-accent)' : 'var(--text-dim)'} style={{ transition: 'all 0.3s' }} />
+              )}
               <span className="sidebar-label">{item.label}</span>
             </button>
           )

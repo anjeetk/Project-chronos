@@ -27,7 +27,7 @@ export default function CommsTranscript({ comms, currentTime }) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        background: 'rgba(0,0,0,0.2)'
+        background: 'var(--input-bg)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-observing)', animation: 'pulse-dot 2s infinite' }} />
@@ -56,12 +56,12 @@ export default function CommsTranscript({ comms, currentTime }) {
           // NLP Sentiment coloring
           if (c.type === 'alarm') {
             color = 'var(--color-critical)'
-            bg = 'rgba(255, 45, 85, 0.1)'
-            border = '1px solid rgba(255, 45, 85, 0.3)'
+            bg = 'color-mix(in srgb, var(--color-critical), transparent 90%)'
+            border = '1px solid color-mix(in srgb, var(--color-critical), transparent 70%)'
           } else if (c.type === 'alert') {
-            color = '#fbbf24' // Yellow for alerts
-            bg = 'rgba(251, 191, 36, 0.1)'
-            border = '1px solid rgba(251, 191, 36, 0.3)'
+            color = 'var(--color-observing)'
+            bg = 'color-mix(in srgb, var(--color-observing), transparent 90%)'
+            border = '1px solid color-mix(in srgb, var(--color-observing), transparent 70%)'
           }
 
           return (
@@ -77,10 +77,10 @@ export default function CommsTranscript({ comms, currentTime }) {
               <span style={{ color: 'var(--text-tertiary)', minWidth: '45px' }}>
                 [{Math.floor(c.timestamp / 60)}:{(c.timestamp % 60).toString().padStart(2, '0')}]
               </span>
-              <span style={{ color: c.type === 'normal' ? '#94a3b8' : color, fontWeight: 700, minWidth: '70px' }}>
+              <span style={{ color: c.type === 'normal' ? 'var(--text-dim)' : color, fontWeight: 700, minWidth: '70px' }}>
                 {c.speaker}:
               </span>
-              <span style={{ color: color === 'var(--text-secondary)' ? '#cbd5e1' : color, flex: 1, wordBreak: 'break-word' }}>
+              <span style={{ color: color === 'var(--text-secondary)' ? 'var(--text-primary)' : color, flex: 1, wordBreak: 'break-word' }}>
                 {c.text}
               </span>
             </div>

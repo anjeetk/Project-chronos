@@ -1,10 +1,50 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
 @import "tailwindcss";
 
-/* ============================================================
-   SYNAPSE GTB — PREMIUM DESIGN SYSTEM
-   Dual-theme deep-space medical command center aesthetic
-   ============================================================ */
+/* ==========================================================================
+   Synapse Core Color System
+   Base: Slate (Cool Gray/Blue)
+   ========================================================================== */
+
+/* ☀️ LIGHT MODE (Default) */
+:root {
+  /* Backgrounds & Surfaces */
+  --color-bg-app: #F8FAFC;
+  --color-bg-surface: #FFFFFF;
+
+  /* Typography & Data */
+  --color-text-primary: #1E293B;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #64748B;
+
+  /* Status & Accents */
+  --color-status-critical: #DC2626;
+  --color-status-stable: #059669;
+  --color-brand-accent: #0D9488;
+
+  /* Borders & Dividers */
+  --color-border-subtle: #E2E8F0;
+}
+
+/* 🌙 DARK MODE */
+.dark, [data-theme="dark"] {
+  /* Backgrounds & Surfaces */
+  --color-bg-app: #0B0F19;
+  --color-bg-surface: #1E293B;
+
+  /* Typography & Data */
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #CBD5E1;
+  --color-text-tertiary: #94A3B8;
+
+  /* Status & Accents */
+  --color-status-critical: #F87171;
+  --color-status-stable: #34D399;
+  --color-brand-accent: #2DD4BF;
+
+  /* Borders & Dividers */
+  --color-border-subtle: #334155;
+}
 
 /* ── Shared Design Tokens ── */
 :root {
@@ -118,31 +158,31 @@
 
 /* ── LIGHT THEME ── */
 [data-theme="light"] {
-  --bg-abyss: #f0f4f8;
-  --bg-deep: #f8fafc;
-  --bg-surface: #ffffff;
-  --bg-elevated: #ffffff;
+  --bg-abyss: var(--color-bg-app);
+  --bg-deep: var(--color-bg-app);
+  --bg-surface: var(--color-bg-surface);
+  --bg-elevated: var(--color-bg-surface);
 
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-bg-hover: rgba(255, 255, 255, 0.9);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-bg-hover: rgba(255, 255, 255, 0.95);
   --glass-bg-solid: #ffffff;
-  --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-border-hover: rgba(0, 0, 0, 0.12);
+  --glass-border: var(--color-border-subtle);
+  --glass-border-hover: rgba(0, 0, 0, 0.15);
   --glass-blur: 20px;
-  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
 
-  --text-primary: #1a202c;
-  --text-secondary: #64748b;
-  --text-dim: #94a3b8;
-  --text-accent: #0369a1;
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-dim: var(--color-text-tertiary);
+  --text-accent: var(--color-brand-accent);
 
-  --color-stable: #059669;
-  --color-stable-bg: rgba(5, 150, 105, 0.06);
+  --color-stable: var(--color-status-stable);
+  --color-stable-bg: color-mix(in srgb, var(--color-status-stable) 8%, transparent);
   --color-observing: #d97706;
   --color-observing-bg: rgba(217, 119, 6, 0.06);
-  --color-critical: #dc2626;
-  --color-critical-bg: rgba(220, 38, 38, 0.06);
-  --color-critical-glow: rgba(220, 38, 38, 0.3);
+  --color-critical: var(--color-status-critical);
+  --color-critical-bg: color-mix(in srgb, var(--color-status-critical) 12%, transparent);
+  --color-critical-glow: color-mix(in srgb, var(--color-status-critical) 30%, transparent);
 
   --sidebar-bg: rgba(255, 255, 255, 0.92);
   --sidebar-border: rgba(0, 0, 0, 0.06);
@@ -620,7 +660,7 @@ body {
 .status-footer {
   position: fixed;
   bottom: 0;
-  left: 64px;
+  left: 0;
   right: 0;
   height: 28px;
   background: var(--sidebar-bg);
@@ -635,10 +675,4 @@ body {
   font-size: 10px;
   font-family: var(--font-mono);
   color: var(--text-dim);
-  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.sidebar-nav.expanded ~ .status-footer,
-.sidebar-nav.expanded ~ * .status-footer {
-  left: 220px;
 }

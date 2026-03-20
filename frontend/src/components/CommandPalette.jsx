@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Search, ArrowRight, Monitor, Shield, AlertTriangle, Download, Bed } from 'lucide-react'
+import { Search, ArrowRight, Monitor, Shield, AlertTriangle, Download, Bed, LayoutDashboard } from 'lucide-react'
 
 const COMMANDS = [
-  { id: 'chronos', label: 'Switch to Chronos', hint: 'ICU Command Center', icon: Monitor, action: 'nav:chronos' },
+  { id: 'chronos', label: 'Switch to Chronos', hint: 'ICU Simulation Dashboard', icon: Monitor, action: 'nav:chronos' },
+  { id: 'command', label: 'Switch to Command Center', hint: 'View ICU Operations', icon: LayoutDashboard, action: 'nav:command' },
   { id: 'sentinel', label: 'Switch to Sentinel', hint: 'Surgical Black Box', icon: Shield, action: 'nav:sentinel' },
   { id: 'bed4', label: 'Show Bed 4', hint: 'Jump to patient in Bed 4', icon: Bed, action: 'nav:chronos' },
   { id: 'bed7', label: 'Show Bed 7', hint: 'Jump to patient in Bed 7', icon: Bed, action: 'nav:chronos' },

@@ -14,13 +14,13 @@ export default function TriageRadar({ patients, selected, onSelect }) {
       {/* Header */}
       <div style={{
         padding: '16px 18px 12px',
-        borderBottom: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--color-border-subtle)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '2px' }}>
+          <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', letterSpacing: '2px' }}>
             TRIAGE RADAR
           </div>
           <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '2px' }}>
@@ -28,13 +28,13 @@ export default function TriageRadar({ patients, selected, onSelect }) {
           </div>
         </div>
         <div style={{
-          background: 'var(--color-critical-bg)',
+          background: 'color-mix(in srgb, var(--color-status-critical) 15%, transparent)',
           padding: '4px 10px',
           borderRadius: 'var(--radius-full)',
           fontSize: '11px',
           fontWeight: 700,
           fontFamily: 'var(--font-mono)',
-          color: 'var(--color-critical)',
+          color: 'var(--color-status-critical)',
         }}>
           {patients.filter(p => p.status === 'critical').length} CRITICAL
         </div>
@@ -68,10 +68,10 @@ export default function TriageRadar({ patients, selected, onSelect }) {
 
 function PatientCard({ patient, isSelected, onClick, rank }) {
   const borderColor = patient.status === 'critical'
-    ? 'var(--color-critical)'
+    ? 'var(--color-status-critical)'
     : patient.status === 'observing'
     ? 'var(--color-observing)'
-    : 'var(--color-stable)'
+    : 'var(--color-status-stable)'
 
   return (
     <button
@@ -82,12 +82,12 @@ function PatientCard({ patient, isSelected, onClick, rank }) {
         padding: '12px 14px',
         marginBottom: '6px',
         borderRadius: 'var(--radius-md)',
-        border: `1px solid ${isSelected ? borderColor : 'var(--glass-border)'}`,
+        border: `1px solid ${isSelected ? borderColor : 'var(--color-border-subtle)'}`,
         background: isSelected ? `${borderColor}11` : 'transparent',
         cursor: 'pointer',
         transition: 'var(--transition-smooth)',
         fontFamily: 'var(--font-display)',
-        color: 'var(--text-primary)',
+        color: 'var(--color-text-primary)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -106,11 +106,11 @@ function PatientCard({ patient, isSelected, onClick, rank }) {
       {/* Top row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginLeft: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '10px', color: 'var(--text-dim)', opacity: 0.5, fontFamily: 'var(--font-mono)', width: '18px' }}>
+          <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', opacity: 0.5, fontFamily: 'var(--font-mono)', width: '18px' }}>
             #{rank}
           </span>
           <span style={{ fontWeight: 600, fontSize: '13px' }}>Bed {patient.bed}</span>
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{patient.name}</span>
+          <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{patient.name}</span>
         </div>
         <RiskBadge value={patient.aggregateRisk} status={patient.status} />
       </div>
@@ -118,7 +118,7 @@ function PatientCard({ patient, isSelected, onClick, rank }) {
       {/* Reason */}
       <div style={{
         fontSize: '11px',
-        color: 'var(--text-secondary)',
+        color: 'var(--color-text-secondary)',
         marginTop: '6px',
         marginLeft: '36px',
       }}>
@@ -142,9 +142,9 @@ function PatientCard({ patient, isSelected, onClick, rank }) {
 }
 
 function RiskBadge({ value, status }) {
-  const color = status === 'critical' ? 'var(--color-critical)'
+  const color = status === 'critical' ? 'var(--color-status-critical)'
     : status === 'observing' ? 'var(--color-observing)'
-    : 'var(--color-stable)'
+    : 'var(--color-status-stable)'
 
   return (
     <span style={{
@@ -164,12 +164,12 @@ function RiskBadge({ value, status }) {
 
 function RiskBar({ label, value, icon: Icon, labelWidth = "70px" }) {
   const pct = Math.round(value * 100)
-  const color = value > 0.7 ? 'var(--color-critical)' : value > 0.4 ? 'var(--color-observing)' : 'var(--color-stable)'
+  const color = value > 0.7 ? 'var(--color-status-critical)' : value > 0.4 ? 'var(--color-observing)' : 'var(--color-status-stable)'
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
-      <Icon size={10} color="var(--text-dim)" />
-      <span style={{ fontSize: '10px', color: 'var(--text-dim)', width: labelWidth, fontFamily: 'var(--font-mono)' }}>{label}</span>
+      <Icon size={10} color="var(--color-text-tertiary)" />
+      <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', width: labelWidth, fontFamily: 'var(--font-mono)' }}>{label}</span>
       <div style={{
         flex: 1,
         height: '4px',

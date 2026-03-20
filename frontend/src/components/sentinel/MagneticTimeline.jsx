@@ -74,7 +74,7 @@ export default function MagneticTimeline({ telemetry, currentTime, duration, onS
           {/* HR line */}
           <polyline
             fill="none"
-            stroke="#ff2d55"
+            stroke="var(--accent-red)"
             strokeWidth="0.3"
             strokeOpacity="0.5"
             points={hrPoints.map(p => {
@@ -87,7 +87,7 @@ export default function MagneticTimeline({ telemetry, currentTime, duration, onS
           {/* SpO2 line */}
           <polyline
             fill="none"
-            stroke="#007aff"
+            stroke="var(--accent-blue)"
             strokeWidth="0.3"
             strokeOpacity="0.5"
             points={spo2Points.map(p => {
@@ -119,7 +119,7 @@ export default function MagneticTimeline({ telemetry, currentTime, duration, onS
           position: 'absolute',
           left: 0, right: 0,
           height: '4px',
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--risk-bar-bg)',
           borderRadius: 'var(--radius-full)',
         }}>
           {/* Progress fill */}
@@ -167,8 +167,8 @@ export default function MagneticTimeline({ telemetry, currentTime, duration, onS
           width: '12px',
           height: '12px',
           borderRadius: '50%',
-          background: 'white',
-          boxShadow: '0 0 10px rgba(100, 210, 255, 0.5)',
+          background: 'var(--text-primary)',
+          boxShadow: '0 0 10px var(--accent-cyan)',
           border: '2px solid var(--accent-cyan)',
           zIndex: 3,
         }} />
@@ -191,11 +191,11 @@ export default function MagneticTimeline({ telemetry, currentTime, duration, onS
               fontFamily: 'var(--font-mono)',
               fontSize: '10px',
               color: 'var(--text-secondary)',
-              background: 'rgba(15, 23, 42, 0.9)',
+              background: 'var(--toast-bg)',
               backdropFilter: 'blur(8px)',
               padding: '6px 10px',
               borderRadius: '6px',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--glass-border)',
               boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
               whiteSpace: 'nowrap',
               pointerEvents: 'none',
@@ -205,10 +205,10 @@ export default function MagneticTimeline({ telemetry, currentTime, duration, onS
               gap: '2px',
               zIndex: 10
             }}>
-              <span style={{ color: 'white', fontWeight: 600 }}>{formatTime(hoverTime)}</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatTime(hoverTime)}</span>
               {point && (
                 <span style={{ fontSize: '9px', opacity: 0.8 }}>
-                  HR: <span style={{ color: '#ff2d55' }}>{point.heart_rate}</span> | SpO2: <span style={{ color: '#007aff' }}>{point.spo2}%</span>
+                HR: <span style={{ color: 'var(--accent-red)' }}>{point.heart_rate}</span> | SpO2: <span style={{ color: 'var(--accent-blue)' }}>{point.spo2}%</span>
                 </span>
               )}
             </div>

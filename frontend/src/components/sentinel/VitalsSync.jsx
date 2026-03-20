@@ -1,10 +1,10 @@
 import { Heart, Droplets, Activity, Eye } from 'lucide-react'
 
 const VITALS = [
-  { key: 'heart_rate', label: 'Heart Rate', unit: 'BPM', icon: Heart, color: '#ff2d55', critical: v => v > 110 },
-  { key: 'spo2', label: 'SpO2', unit: '%', icon: Droplets, color: '#007aff', critical: v => v < 92 },
-  { key: 'bp_sys', label: 'Sys. BP', unit: 'mmHg', icon: Activity, color: '#bf5af2', critical: v => v < 90 },
-  { key: 'motion_score', label: 'Motion', unit: 'score', icon: Eye, color: '#fbbf24', critical: v => v > 30 },
+  { key: 'heart_rate', label: 'Heart Rate', unit: 'BPM', icon: Heart, color: 'var(--accent-red)', critical: v => v > 110 },
+  { key: 'spo2', label: 'SpO2', unit: '%', icon: Droplets, color: 'var(--accent-blue)', critical: v => v < 92 },
+  { key: 'bp_sys', label: 'Sys. BP', unit: 'mmHg', icon: Activity, color: 'var(--accent-purple)', critical: v => v < 90 },
+  { key: 'motion_score', label: 'Motion', unit: 'score', icon: Eye, color: 'var(--accent-amber)', critical: v => v > 30 },
 ]
 
 export default function VitalsSync({ frame }) {
@@ -44,7 +44,7 @@ export default function VitalsSync({ frame }) {
             className="glass"
             style={{
               padding: '12px 14px',
-              borderColor: isCritical ? `${cfg.color}44` : 'var(--glass-border)',
+              borderColor: isCritical ? `color-mix(in srgb, ${cfg.color}, transparent 70%)` : 'var(--glass-border)',
               position: 'relative',
               overflow: 'hidden',
             }}
@@ -53,7 +53,7 @@ export default function VitalsSync({ frame }) {
               <div style={{
                 position: 'absolute',
                 inset: 0,
-                background: `radial-gradient(ellipse at center, ${cfg.color}10, transparent 70%)`,
+                background: `radial-gradient(ellipse at center, color-mix(in srgb, ${cfg.color}, transparent 90%), transparent 70%)`,
                 pointerEvents: 'none',
               }} />
             )}

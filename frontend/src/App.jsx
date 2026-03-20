@@ -3,18 +3,21 @@ import { BrowserRouter } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import ChronosView from './pages/ChronosView'
 import SentinelView from './pages/SentinelView'
+import ICUCommandCenter from './pages/ICUCommandCenter'
+import PatientPortal from './pages/PatientPortal'
+import NurseDashboard from './pages/NurseDashboard'
 import CommandPalette from './components/CommandPalette'
 import DoctorQuickAuth from './components/auth/DoctorQuickAuth'
-import Sidebar from './components/shared/Sidebar'
 import StatusBar from './components/shared/StatusBar'
 import ThemeToggle from './components/shared/ThemeToggle'
 import SplashScreen from './components/shared/SplashScreen'
+import NotificationCenter from './components/chronos/NotificationCenter'
 import AmbientParticles from './components/shared/AmbientParticles'
 import { ToastProvider, useToast } from './components/shared/NotificationToast'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { playNavClick, playPaletteOpen } from './utils/sounds'
-import { LogOut, Bell, Search } from 'lucide-react'
+import { LogOut, Bell, Search, Monitor, Shield, LayoutDashboard } from 'lucide-react'
 import './styles/index.css'
 
 // Page transition variants
@@ -30,7 +33,7 @@ const pageTransition = {
 }
 
 function AuthenticatedApp() {
-  const { isAuthenticated, loading, doctor, logout } = useAuth()
+  const { isAuthenticated, loading, doctor, logout, session } = useAuth()
   const [showPalette, setShowPalette] = useState(false)
   const [activeView, setActiveView] = useState('chronos')
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
@@ -88,9 +91,69 @@ function AuthenticatedApp() {
     return <DoctorQuickAuth />
   }
 
+  // PATIENT VIEW BYPASS
+  if (session?.user?.user_metadata?.role === 'patient') {
+    return (
+      <div style={{ background: 'var(--bg-abyss)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: 'var(--font-display)', display: 'flex', flexDirection: 'column' }}>
+        <AmbientParticles riskLevel={0.1} />
+        <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', background: 'var(--glass-bg)', backdropFilter: 'blur(10px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img src="/images/MasterBrandLogo.png" alt="Synapse Logo" style={{ height: '24px' }} />
+            <span style={{ fontWeight: 700, letterSpacing: '2px', color: 'var(--text-primary)'}}>SYNAPSE <span style={{ color: 'var(--text-dim)'}}>{`// SECURE PORTAL`}</span></span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+             <ThemeToggle />
+             <button onClick={logout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', borderRadius: '10px', background: 'var(--color-critical-bg)', border: '1px solid rgba(255, 45, 85, 0.12)', color: '#ff6b8a', cursor: 'pointer' }}>
+               <LogOut size={15} />
+             </button>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflow: 'auto' }}>
+           <PatientPortal />
+        </div>
+      </div>
+    )
+  }
+
+  // NURSE VIEW BYPASS
+  if (session?.user?.user_metadata?.role === 'nurse') {
+    return (
+      <div style={{ background: 'var(--bg-abyss)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: 'var(--font-display)', display: 'flex', flexDirection: 'column' }}>
+        <AmbientParticles riskLevel={0.2} />
+        <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', background: 'var(--glass-bg)', backdropFilter: 'blur(10px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img src="/images/MasterBrandLogo.png" alt="Synapse Logo" style={{ height: '24px' }} />
+            <span style={{ fontWeight: 700, letterSpacing: '2px', color: 'var(--text-primary)'}}>SYNAPSE <span style={{ color: 'var(--text-dim)'}}>{`// NURSE STATION`}</span></span>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+             {/* Profile display */}
+             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+               <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-brand-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#fff' }}>
+                 {doctor?.name?.charAt(0) || 'N'}
+               </div>
+               <div style={{ display: 'flex', flexDirection: 'column' }}>
+                 <span style={{ fontSize: '13px', fontWeight: 600 }}>{doctor?.name || 'Staff Nurse'}</span>
+                 <span style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Shift Active</span>
+               </div>
+             </div>
+
+             <ThemeToggle />
+             <button onClick={logout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', borderRadius: '10px', background: 'var(--color-critical-bg)', border: '1px solid rgba(255, 45, 85, 0.12)', color: '#ff6b8a', cursor: 'pointer' }}>
+               <LogOut size={15} />
+             </button>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflow: 'auto' }}>
+           <NurseDashboard />
+        </div>
+      </div>
+    )
+  }
+
   // Show splash screen on first load after auth
   if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />
+    return <SplashScreen onComplete={() => setShowSplash(false)} userName={doctor?.name} />
   }
 
   const sidebarWidth = sidebarExpanded ? 220 : 64
@@ -146,6 +209,60 @@ function AuthenticatedApp() {
             color: 'var(--text-dim)',
             letterSpacing: '1.5px',
           }}>BETA</span>
+
+          {/* New Header Nav Tabs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '32px' }}>
+            <button
+              onClick={() => navigate('chronos')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '6px 14px', borderRadius: 'var(--radius-full)',
+                fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600,
+                cursor: 'pointer', transition: 'all 0.2s ease',
+                background: activeView === 'chronos' ? 'rgba(52, 211, 153, 0.15)' : 'transparent',
+                color: activeView === 'chronos' ? 'var(--color-stable)' : 'var(--text-secondary)',
+                border: activeView === 'chronos' ? '1px solid rgba(52, 211, 153, 0.3)' : '1px solid transparent'
+              }}
+              onMouseEnter={(e) => { if (activeView !== 'chronos') e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={(e) => { if (activeView !== 'chronos') e.currentTarget.style.color = 'var(--text-secondary)' }}
+            >
+              <Monitor size={14} /> Chronos
+            </button>
+            <button
+              onClick={() => navigate('command')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '6px 14px', borderRadius: 'var(--radius-full)',
+                fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600,
+                cursor: 'pointer', transition: 'all 0.2s ease',
+                background: activeView === 'command' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                color: activeView === 'command' ? 'var(--color-observing)' : 'var(--text-secondary)',
+                border: activeView === 'command' ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid transparent'
+              }}
+              onMouseEnter={(e) => { if (activeView !== 'command') e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={(e) => { if (activeView !== 'command') e.currentTarget.style.color = 'var(--text-secondary)' }}
+            >
+              <LayoutDashboard size={14} /> Command Center
+            </button>
+            {doctor?.role === 'doctor' && (
+              <button
+                onClick={() => navigate('sentinel')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 14px', borderRadius: 'var(--radius-full)',
+                  fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                  background: activeView === 'sentinel' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                  color: activeView === 'sentinel' ? 'var(--color-critical)' : 'var(--text-secondary)',
+                  border: activeView === 'sentinel' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid transparent'
+                }}
+                onMouseEnter={(e) => { if (activeView !== 'sentinel') e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={(e) => { if (activeView !== 'sentinel') e.currentTarget.style.color = 'var(--text-secondary)' }}
+              >
+                <Shield size={14} /> Sentinel
+              </button>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -205,6 +322,9 @@ function AuthenticatedApp() {
             }}>⌘K</kbd>
           </button>
 
+          {/* Notification Center */}
+          <NotificationCenter doctorId={doctor?.id} />
+
           {/* Theme Toggle */}
           <ThemeToggle />
 
@@ -240,20 +360,12 @@ function AuthenticatedApp() {
         </div>
       </nav>
 
-      {/* Sidebar */}
-      <Sidebar
-        activeView={activeView}
-        onNavigate={navigate}
-        expanded={sidebarExpanded}
-        onToggleExpand={() => setSidebarExpanded(e => !e)}
-      />
-
       {/* Main Content with page transitions */}
       <div style={{
         position: 'relative',
         zIndex: 1,
         paddingTop: '56px',
-        paddingLeft: sidebarWidth,
+        paddingLeft: 0,
         paddingBottom: '28px',
         height: '100vh',
         transition: 'padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -283,6 +395,19 @@ function AuthenticatedApp() {
               style={{ height: '100%' }}
             >
               <SentinelView />
+            </motion.div>
+          )}
+          {activeView === 'command' && (
+            <motion.div
+              key="command"
+              variants={pageVariants}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+              transition={pageTransition}
+              style={{ height: '100%' }}
+            >
+              <ICUCommandCenter />
             </motion.div>
           )}
         </AnimatePresence>

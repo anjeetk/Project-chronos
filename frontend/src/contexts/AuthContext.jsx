@@ -73,20 +73,46 @@ export function AuthProvider({ children }) {
     return data
   }
 
-  const signup = async (email, password, name) => {
+  const signup = async (email, password, name, metadata = {}) => {
+    const role = metadata.role || 'doctor'
+    
+    // Assign random metadata for nurses
+    let assignedDoctor = null
+    let assignedWard = null
+    
+    if (role === 'nurse') {
+      const doctors = ["Dr. Avery", "Dr. Sterling", "Dr. Vance", "Dr. Thorne"]
+      const wards = ["ICU-A (Critical Care)", "ICU-B (Post-Op)", "ICU-C (Neonatal)", "ICU-D (Neuro)"]
+      assignedDoctor = doctors[Math.floor(Math.random() * doctors.length)]
+      assignedWard = wards[Math.floor(Math.random() * wards.length)]
+    }
+
     // 1. Sign up with Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: 'http://localhost:5173',
         data: {
           name,
-          role: 'doctor'
+          role: role,
+          assigned_doctor_name: assignedDoctor,
+          assigned_icu_ward: assignedWard
         }
       }
     })
     
-    if (error) throw error
+    if (error) {
+      if (error.message.includes('Email rate limit exceeded') || error.message.includes('rate limit')) {
+         console.warn('Rate limit exceeded. Falling back to Guest Session for demo.')
+         const mockUser = { id: 'guest-' + Math.random().toString(36).substr(2, 9), email, user_metadata: { name, role, assigned_doctor_name: assignedDoctor, assigned_icu_ward: assignedWard } }
+         setSession({ user: mockUser })
+         setDoctor({ ...mockUser.user_metadata, id: mockUser.id, email })
+         setLoading(false)
+         return { user: mockUser, session: { user: mockUser }, isGuest: true }
+      }
+      throw error
+    }
     
     // 2. Insert into public.users
     if (data.user) {
@@ -95,7 +121,9 @@ export function AuthProvider({ children }) {
         .upsert({
           id: data.user.id,
           name: name,
-          role: 'doctor'
+          role: role,
+          assigned_doctor_name: assignedDoctor,
+          assigned_icu_ward: assignedWard
         })
         
       if (insertError) {
@@ -112,7 +140,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, doctor, loading, login, signup, logout, isAuthenticated: !!session }}>
+    <AuthContext.Provider value={{ session, user: session?.user, doctor, loading, login, signup, logout, isAuthenticated: !!session }}>
       {children}
     </AuthContext.Provider>
   )

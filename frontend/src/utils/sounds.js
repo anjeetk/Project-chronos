@@ -149,3 +149,91 @@ export function playPaletteOpen() {
   osc.start(now)
   osc.stop(now + 0.2)
 }
+
+// ── Notification Ring (On-Duty) ──
+// Loud, repeating hospital alarm — 3 ascending tones
+export function playNotificationRing() {
+  const ctx = getContext()
+  const now = ctx.currentTime
+
+  const tones = [
+    { freq: 880, start: 0, dur: 0.12 },
+    { freq: 1100, start: 0.15, dur: 0.12 },
+    { freq: 1320, start: 0.30, dur: 0.15 },
+    // repeat
+    { freq: 880, start: 0.55, dur: 0.12 },
+    { freq: 1100, start: 0.70, dur: 0.12 },
+    { freq: 1320, start: 0.85, dur: 0.15 },
+  ]
+
+  tones.forEach(t => {
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.value = t.freq
+    gain.gain.setValueAtTime(0.18, now + t.start)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + t.start + t.dur)
+    osc.connect(gain).connect(ctx.destination)
+    osc.start(now + t.start)
+    osc.stop(now + t.start + t.dur + 0.05)
+  })
+}
+
+// ── Notification Silent (Off-Duty) ──
+// Soft single ping
+export function playNotificationSilent() {
+  const ctx = getContext()
+  const now = ctx.currentTime
+
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(680, now)
+  osc.frequency.exponentialRampToValueAtTime(520, now + 0.2)
+  gain.gain.setValueAtTime(0.03, now)
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3)
+  osc.connect(gain).connect(ctx.destination)
+  osc.start(now)
+  osc.stop(now + 0.3)
+}
+// ── Success Chime ──
+// Bright single beep
+export function playSuccess() {
+  const ctx = getContext()
+  const now = ctx.currentTime
+
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(880, now)
+  osc.frequency.exponentialRampToValueAtTime(440, now + 0.1)
+  gain.gain.setValueAtTime(0.06, now)
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15)
+  osc.connect(gain).connect(ctx.destination)
+  osc.start(now)
+  osc.stop(now + 0.15)
+}
+
+// ── Notification Ping ──
+// Friendly dual tone
+export function playNotification() {
+  const ctx = getContext()
+  const now = ctx.currentTime
+
+  const tones = [
+    { f: 660, t: 0, d: 0.1 },
+    { f: 880, t: 0.1, d: 0.15 }
+  ]
+
+  tones.forEach(tone => {
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.value = tone.f
+    gain.gain.setValueAtTime(0.05, now + tone.t)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + tone.t + tone.d)
+    osc.connect(gain).connect(ctx.destination)
+    osc.start(now + tone.t)
+    osc.stop(now + tone.t + tone.d)
+  })
+}

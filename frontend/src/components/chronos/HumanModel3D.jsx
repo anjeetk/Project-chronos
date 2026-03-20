@@ -176,7 +176,7 @@ export default function HumanModel3D({ highlightOrgan, riskLevel }) {
   const currentModelRot = [rotX, rotY, rotZ];
 
   return (
-    <div className="w-full h-full relative rounded-xl overflow-hidden bg-gradient-to-b from-transparent to-slate-900/50">
+    <div className="w-full h-full relative rounded-xl overflow-hidden" style={{ background: 'linear-gradient(to bottom, transparent, var(--glass-bg))' }}>
 
       {/* 3D Canvas */}
       <Canvas camera={{ position: [0, 2, 6], fov: 45 }} gl={{ antialias: true, alpha: true }}>
@@ -208,7 +208,7 @@ export default function HumanModel3D({ highlightOrgan, riskLevel }) {
       </Canvas>
 
       {/* High-Tech Overlay Elements */}
-      <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-400 uppercase tracking-widest bg-black/40 px-2 py-1 rounded backdrop-blur-sm border border-white/5 z-20">
+      <div className="absolute top-4 left-4 text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded backdrop-blur-sm z-20" style={{ background: 'var(--glass-bg)', border: '1px solid var(--color-border-subtle)', color: 'var(--color-text-secondary)' }}>
         Active Scan // Full Body Telemetry
       </div>
 
@@ -216,14 +216,20 @@ export default function HumanModel3D({ highlightOrgan, riskLevel }) {
       <div className="absolute bottom-4 right-4 z-30 flex gap-2">
         <button
           onClick={() => setIsRotating(!isRotating)}
-          className="px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-slate-400 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+          className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest transition-colors backdrop-blur-md"
+          style={{ background: 'var(--glass-bg)', border: '1px solid var(--color-border-subtle)', color: 'var(--color-text-secondary)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-text-primary)'; e.currentTarget.style.borderColor = 'var(--color-text-tertiary)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.borderColor = 'var(--color-border-subtle)'; }}
         >
           {isRotating ? 'Stop Rotation' : 'Spin Model'}
         </button>
         {/* DEV TOOLS: Uncomment the button below before the pitch to recalibrate the 3D Model and Organ Nodes */}
         <button
           onClick={() => setIsCalibrating(!isCalibrating)}
-          className="px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-slate-400 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+          className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest transition-colors backdrop-blur-md"
+          style={{ background: 'var(--glass-bg)', border: '1px solid var(--color-border-subtle)', color: 'var(--color-text-secondary)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-text-primary)'; e.currentTarget.style.borderColor = 'var(--color-text-tertiary)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.borderColor = 'var(--color-border-subtle)'; }}
         >
           {isCalibrating ? 'Cancel Calibration' : 'Calibrate 3D'}
         </button>

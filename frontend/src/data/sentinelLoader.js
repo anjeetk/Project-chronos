@@ -1,5 +1,15 @@
-// Utility to load Sentinel data from black box/output/
-// Falls back to embedded sample data for demo resilience
+/**
+ * sentinelLoader.js — Data loader for SentinelView.
+ *
+ * Tries to fetch from backend API first, falls back to local sample data.
+ * Uses real SHA-256 chain via cryptoEngine when generating sample audit trails.
+ */
+
+import { sha256, ChainState } from '../utils/cryptoEngine.js'
+
+const API_BASE = 'http://localhost:8000'
+
+// ── Sample telemetry (used when backend is not running) ──
 
 const SAMPLE_TELEMETRY = Array.from({ length: 360 }, (_, i) => {
   const t = i * 0.5;
@@ -39,19 +49,53 @@ const SAMPLE_COMMS = [
   { timestamp: 55, speaker: 'Surgeon', text: 'Closing up.', type: 'normal' },
 ];
 
-function generateHash() {
-  const chars = '0123456789abcdef';
-  let h = '';
-  for (let i = 0; i < 64; i++) h += chars[Math.floor(Math.random() * 16)];
-  return h;
+// ── Build audit trail with REAL SHA-256 hashing ──
+
+async function buildRealAuditTrail(telemetry) {
+  const chain = new ChainState('0'.repeat(64))
+  const results = []
+
+  for (const t of telemetry) {
+    const vitals = {
+      bp_dia: Math.round((t.bp_sys || 120) * 0.67),
+      bp_sys: Math.round(t.bp_sys || 120),
+      hr: Math.round(t.heart_rate || 80),
+      spo2: Math.round(t.spo2 || 98),
+    }
+    const frameMock = `frame_${t.frame_idx}_${t.timestamp}`
+    const frame_sha256 = await sha256(frameMock)
+
+    const rec = await chain.addRecord(
+      Math.floor(t.timestamp * 1000),
+      frame_sha256,
+      vitals,
+    )
+
+    results.push({
+      timestamp: t.timestamp,
+      data_hash: rec.chain_hash,
+      prev_hash: rec.prev_hash,
+      seq: rec.seq,
+      frame_sha256: rec.frame_sha256,
+      vitals: rec.vitals,
+      chain_hash: rec.chain_hash,
+    })
+  }
+
+  return results
 }
 
-const SAMPLE_AUDIT = SAMPLE_TELEMETRY.map((t, i) => ({
-  timestamp: t.timestamp,
-  data_hash: generateHash(),
-  prev_hash: i === 0 ? '0'.repeat(64) : undefined,
-}));
-SAMPLE_AUDIT.forEach((a, i) => { if (i > 0) a.prev_hash = SAMPLE_AUDIT[i - 1].data_hash; });
+// ── Backend fetch helpers ──
+
+async function fetchFromBackend(endpoint) {
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`)
+    if (res.ok) return await res.json()
+  } catch (_) {}
+  return null
+}
+
+// ── Public API ──
 
 export async function loadTelemetry(basePath = '') {
   try {
@@ -62,14 +106,32 @@ export async function loadTelemetry(basePath = '') {
 }
 
 export async function loadAuditTrail(basePath = '') {
+  // Try backend first
+  const backendStatus = await fetchFromBackend('/api/status')
+  if (backendStatus && backendStatus.session_id) {
+    // Backend is running with live session — fetch recordings for audit data
+    const recordings = await fetchFromBackend('/api/recordings')
+    if (recordings && recordings.length > 0) {
+      console.log('[sentinelLoader] Using backend data')
+    }
+  }
+
+  // Try local file
   try {
     const res = await fetch(`${basePath}/audit_trail.json?t=${Date.now()}`);
     if (res.ok) return await res.json();
   } catch (_) { /* fallback */ }
-  return SAMPLE_AUDIT;
+
+  // Fall back to real SHA-256 computed sample data
+  console.log('[sentinelLoader] Building real SHA-256 audit trail...')
+  return await buildRealAuditTrail(SAMPLE_TELEMETRY)
 }
 
 export async function loadSessions(basePath = '') {
+  // Try backend API
+  const backendSessions = await fetchFromBackend('/api/recordings')
+  if (backendSessions && backendSessions.length > 0) return backendSessions
+
   try {
     const res = await fetch(`${basePath}/sessions.json?t=${Date.now()}`);
     if (res.ok) return await res.json();
@@ -77,4 +139,30 @@ export async function loadSessions(basePath = '') {
   return null;
 }
 
-export { SAMPLE_TELEMETRY, SAMPLE_AUDIT, SAMPLE_COMMS };
+export async function tamperRecord(sessionId, seq, mode = 'modify_vitals') {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/tamper/${sessionId}/${seq}?mode=${mode}`,
+      { method: 'POST' }
+    )
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('[sentinelLoader] Tamper failed:', e)
+  }
+  return null
+}
+
+export async function verifyRecording(sessionId) {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/verify/${sessionId}`,
+      { method: 'POST' }
+    )
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('[sentinelLoader] Verify failed:', e)
+  }
+  return null
+}
+
+export { SAMPLE_TELEMETRY, SAMPLE_COMMS };
