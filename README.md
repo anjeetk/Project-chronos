@@ -1,55 +1,71 @@
-# Project_Chronos (GTBIT)
+# 🧠 Synapse_GTB — Surgical Black Box & Sentinel Monitor
 
-Welcome to the Synapse_GBT project_Chronos! This repository contains tools for medical data analysis, model training, and a specialized "Surgical Black Box" simulation system with a real-time monitoring dashboard.
+**Synapse_GTB** is a production-grade, end-to-end surgical monitoring and data integrity system. It combines real-time medical telemetry, depth-aware computer vision, and cryptographic hash chaining to create a "tamper-proof" audit trail for surgical procedures.
 
-## Project Structure
+---
 
-- `black box/`: Contains the simulation engine and the real-time dashboard.
-- `extract.py`: Script for extracting data from external sources (e.g., MIMIC).
-- `train_baseline.py`: Baseline model training implementation.
-- `visualize_performance.py`: Tools for evaluating and visualizing model performance.
-- `requirements.txt`: Python dependencies.
+## 🚀 Deployment Status
+The project is officially deployed on **Vercel**!
+- 🌎 **Live Production URL**: [synapse-gtb.vercel.app](https://synapse-gtb.vercel.app)
 
-## Getting Started
+---
 
-### 1. Environment Setup
-We recommend using a Python virtual environment:
+## 🏛 Project Architecture
+
+### 1. **Chronos Engine** (`/backend`)
+A high-performance **FastAPI** backend that manages:
+- **Live Capture**: DepthAI-integrated camera stream handling.
+- **Hash Chaining**: Deterministic SHA-256 integrity sealing for every telemetry packet.
+- **Merkle Trees**: Batching frame hashes into roots for potential blockchain anchoring.
+- **Verification**: Post-hoc auditing to detect any bit-level tampering in recorded files.
+
+### 2. **Sentinel View** (`/frontend`)
+A premium **React + Tailwind** dashboard with:
+- **Real-time Vitals**: Dynamic graphing of surgical telemetry.
+- **Magnetic Timeline**: Intuitive navigation through recorded surgical sessions.
+- **Tamper Simulator**: An interactive "Red-Team" tool to simulate hash mismatches and test the automated alert system.
+- **Merkle Visualizer**: A recursive tree structure showing how the root hash is calculated.
+
+---
+
+## 🛠 Tech Stack
+-   **Frontend**: React (Vite), Framer Motion, Tailwind CSS, Lucide Icons, Chart.js
+-   **Backend**: Python, FastAPI, OpenCV (Headless), NumPy
+-   **DevOps**: Vercel (Single-Project Monorepo), GitHub Automation
+
+---
+
+## 🚦 Getting Started Locally
+
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+
+### 1. Setup Backend
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+cd backend
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+python -m app.main --with-api
 ```
 
-### 2. Surgical Black Box Simulation
-The Black Box system simulates a surgical environment with real-time telemetry hashing and auditing.
-
-#### Run the Simulation Engine:
+### 2. Setup Frontend
 ```bash
-cd "black box"
-python sentinel_engine.py
-```
-This will process the video file in `trimmed video/`, generate telemetry, and seal the data with cryptographic hashes in the `output/` directory.
-
-#### Launch the Dashboard:
-Open `black box/dashboard/index.html` in any modern web browser. 
-- You can select different sessions using the picker.
-- Click "PLAY" to sync the video with the telemetry data.
-- View real-time vitals, motion scores, and the live cryptographic hash chain.
-- Click anomalies in the log to "jump back" and see the context.
-
-### 3. Model Performance Visualization
-To see how the models are performing on the test set:
-```bash
-python visualize_performance.py
+cd frontend
+npm install
+npm run dev
 ```
 
-## For Frontend Development
-The frontend is located in `black box/dashboard/`. It uses:
-- `index.html`: Structure and layout.
-- `style.css`: Premium dark-mode aesthetics.
-- `app.js`: Logic for data polling, video sync, and charting (using Chart.js).
+---
 
-Feel free to modify the UI/UX in these files to enhance the project!
+## 🔒 Security & Integrity
+The core of Synapse_GTB is the **Sentinel Protocol**:
+1.  **Frame Hashing**: Each frame `n` contains `Hash(Data_n + Hash_{n-1})`.
+2.  **Immutability**: Any modification to a single vital sign or video frame breaks the chain instantly.
+3.  **Real-time Alerts**: The frontend Sentinel View performs continuous "Look-ahead" verification, surfacing **Tampering Detected** warnings in <10ms if the integrity is compromised.
 
-## Security and Integrity
-The project implements a "Hash Chain" mechanism. Every frame of data is hashed with the previous frame's hash, creating an immutable audit trail that can be verified using the "VERIFY SYSTEM INTEGRITY" button on the dashboard.
+---
+
+## ⚖️ License
+This project was developed for the **GTBIT Hackathon**. All rights reserved.
