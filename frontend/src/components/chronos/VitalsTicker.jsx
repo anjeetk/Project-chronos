@@ -92,8 +92,8 @@ export default function VitalsTicker({ vitals, history, status }) {
             </div>
 
             {/* Mini sparkline */}
-            <div style={{ height: '28px', marginTop: '8px' }}>
-              <ResponsiveContainer width="100%" height="100%">
+            <div style={{ height: '28px', marginTop: '8px', minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={28}>
                 <AreaChart data={sparkData}>
                   <defs>
                     <linearGradient id={`grad-${cfg.key}`} x1="0" y1="0" x2="0" y2="1">

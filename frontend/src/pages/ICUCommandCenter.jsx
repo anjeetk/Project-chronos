@@ -213,11 +213,22 @@ function PatientScannerModal({ onClose, onSelect, doctorId, allPatients }) {
           const patient = allPatients.find(p => p.id === detectedId);
           if (patient && isActuallyScanning) {
             isActuallyScanning = false;
-            html5QrCode.stop().then(() => {
-              scannerRef.current = null;
-              setSelectedPatient(patient);
-              setStep('confirm');
-            }).catch(err => console.error("Error stopping scanner", err));
+            // Use a timeout to ensure start() has completed and state is stable
+            setTimeout(() => {
+              if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                  scannerRef.current = null;
+                  setSelectedPatient(patient);
+                  setStep('confirm');
+                }).catch(err => {
+                   console.debug("Scanner stop error (suppressed):", err);
+                   // Still proceed to confirm even if stop fails (likely already stopped)
+                   scannerRef.current = null;
+                   setSelectedPatient(patient);
+                   setStep('confirm');
+                });
+              }
+            }, 100);
           }
         },
         () => {}
@@ -232,7 +243,11 @@ function PatientScannerModal({ onClose, onSelect, doctorId, allPatients }) {
     return () => {
       if (html5QrCode && isActuallyScanning) {
         isActuallyScanning = false;
-        html5QrCode.stop().catch(err => console.debug("Cleanup stop suppressed:", err));
+        setTimeout(() => {
+          try {
+            html5QrCode.stop().catch(err => console.debug("Cleanup stop suppressed:", err));
+          } catch (e) {}
+        }, 100);
       }
     }
   }, [step, allPatients])
@@ -334,16 +349,24 @@ function PatientScannerModal({ onClose, onSelect, doctorId, allPatients }) {
                     <button 
                       key={p.id}
                       onClick={() => { 
-                        if (scannerRef.current) {
-                           scannerRef.current.stop().then(() => {
-                             scannerRef.current = null;
-                             setSelectedPatient(p); 
-                             setStep('confirm');
-                           });
-                        } else {
-                          setSelectedPatient(p); 
-                          setStep('confirm');
-                        }
+                              if (scannerRef.current) {
+                                const scanner = scannerRef.current;
+                                scannerRef.current = null;
+                                setTimeout(() => {
+                                  try {
+                                    scanner.stop().finally(() => {
+                                      setSelectedPatient(p); 
+                                      setStep('confirm');
+                                    });
+                                  } catch (e) {
+                                    setSelectedPatient(p); 
+                                    setStep('confirm');
+                                  }
+                                }, 100);
+                              } else {
+                                setSelectedPatient(p); 
+                                setStep('confirm');
+                              }
                       }}
                       style={{
                         padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)',
