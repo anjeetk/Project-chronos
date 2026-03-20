@@ -12,6 +12,7 @@ import {
 export default function PatientPortal() {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
+  const [selectedItem, setSelectedItem] = useState(null)
   const [data, setData] = useState({
     patient: null,
     otBlock: null,
@@ -261,7 +262,13 @@ export default function PatientPortal() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {data.medications.map(med => (
-                      <div key={med.id} className="glass" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <motion.div 
+                        key={med.id} 
+                        whileHover={{ scale: 1.01, backgroundColor: 'rgba(56, 189, 248, 0.05)' }}
+                        onClick={() => setSelectedItem({ ...med, type: 'medication' })}
+                        className="glass" 
+                        style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                      >
                         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                           <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Pill size={20} color="var(--accent-cyan)" />
@@ -281,7 +288,7 @@ export default function PatientPortal() {
                             Administered by: {med.users?.name || 'Nurse'}
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 )}
@@ -301,10 +308,17 @@ export default function PatientPortal() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {data.instructions.map(inst => (
-                      <div key={inst.id} className="glass" style={{ 
-                        padding: '20px', 
-                        borderLeft: `4px solid ${inst.status === 'pending' ? 'var(--color-observing)' : 'var(--color-stable)'}` 
-                      }}>
+                      <motion.div 
+                        key={inst.id} 
+                        whileHover={{ scale: 1.01, backgroundColor: 'rgba(52, 211, 153, 0.05)' }}
+                        onClick={() => setSelectedItem({ ...inst, type: 'instruction' })}
+                        className="glass" 
+                        style={{ 
+                          padding: '20px', 
+                          borderLeft: `4px solid ${inst.status === 'pending' ? 'var(--color-observing)' : 'var(--color-stable)'}`,
+                          cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                      >
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                           <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
                             {new Date(inst.created_at).toLocaleString()}
@@ -322,7 +336,7 @@ export default function PatientPortal() {
                         <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '12px' }}>
                           From: {inst.users?.name || 'Doctor'}
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 )}
@@ -345,7 +359,13 @@ export default function PatientPortal() {
                       const isUrgent = daysLeft <= 10
                       
                       return (
-                        <div key={rem.id} className="glass" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <motion.div 
+                          key={rem.id} 
+                          whileHover={{ scale: 1.02, backgroundColor: 'rgba(56, 189, 248, 0.05)' }}
+                          onClick={() => setSelectedItem({ ...rem, type: 'reminder', daysLeft, isUrgent })}
+                          className="glass" 
+                          style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', transition: 'all 0.2s' }}
+                        >
                           <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <h3 style={{ fontSize: '16px', color: 'var(--text-primary)', fontWeight: 'bold' }}>{rem.title}</h3>
@@ -371,7 +391,7 @@ export default function PatientPortal() {
                               {isUrgent ? 'Approaching Soon' : 'Mark your calendar'}
                             </div>
                           </div>
-                        </div>
+                        </motion.div>
                       )
                     })}
                   </div>
@@ -452,7 +472,136 @@ export default function PatientPortal() {
               </div>
             )}
           </motion.div>
-        </AnimatePresence>
+          {selectedItem && (
+          <ItemDetailModal 
+            item={selectedItem} 
+            onClose={() => setSelectedItem(null)} 
+          />
+        )}
+      </AnimatePresence>
+      </div>
+    </div>
+  )
+}
+
+// ─── ITEM DETAIL MODAL ──────────────────────────────────────────────
+function ItemDetailModal({ item, onClose }) {
+  const typeLabels = {
+    instruction: 'Doctor Instruction',
+    medication: 'Medication Administration',
+    reminder: 'Follow-up Reminder',
+    complaint: 'Grievance / Request'
+  }
+
+  const icons = {
+    instruction: Clock,
+    medication: Pill,
+    reminder: BellRing,
+    complaint: AlertTriangle
+  }
+
+  const Icon = icons[item.type] || FileText
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(5, 10, 15, 0.9)', backdropFilter: 'blur(12px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '20px'
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95 }}
+        className="glass"
+        style={{ width: '100%', maxWidth: '480px', padding: '32px', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+          <div style={{
+            width: '44px', height: '44px', borderRadius: '12px',
+            background: 'color-mix(in srgb, var(--color-brand-accent) 15%, transparent)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon size={22} color="var(--color-brand-accent)" />
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', color: 'var(--color-brand-accent)', fontFamily: 'var(--font-mono)', letterSpacing: '2px', fontWeight: 700 }}>
+              {typeLabels[item.type]?.toUpperCase()}
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginTop: '4px', letterSpacing: '-0.5px' }}>
+              {item.medicine || item.title || item.complaint_type || item.text?.substring(0, 20) || 'Secure Medical Update'}
+            </h2>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {item.type === 'instruction' && (
+            <>
+               <DetailSection label="Instruction Note" value={item.text} large />
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <DetailSection label="Doctor" fallback="Dr. Elena Vance" />
+                  <DetailSection label="Status" value={item.status.toUpperCase()} color={item.status === 'completed' ? 'var(--color-stable)' : 'var(--color-observing)'} />
+                  <DetailSection label="Issued At" value={new Date(item.created_at).toLocaleString()} />
+               </div>
+            </>
+          )}
+
+          {item.type === 'medication' && (
+            <>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <DetailSection label="Medicine Name" value={item.medicine} />
+                  <DetailSection label="Dosage" value={item.dosage} />
+                  <DetailSection label="Route" value={item.route} />
+                  <DetailSection label="Action By" fallback="Senior Nursing Staff" />
+                  <DetailSection label="Time" value={new Date(item.administered_at).toLocaleString()} />
+               </div>
+            </>
+          )}
+
+          {item.type === 'reminder' && (
+            <>
+               <DetailSection label="Follow-up Title" value={item.title} large />
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <DetailSection label="Scheduled Date" value={new Date(item.reminder_date).toLocaleDateString()} />
+                  <DetailSection label="Urgency" value={item.isUrgent ? 'URGENT' : 'NORMAL'} color={item.isUrgent ? 'var(--color-critical)' : 'var(--color-stable)'} />
+                  <DetailSection label="Time Remaining" value={`${item.daysLeft} Days`} />
+               </div>
+               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
+                  This is an automated system reminder based on your clinical discharge pathway. Please ensure documentation is ready.
+               </div>
+            </>
+          )}
+
+          <div style={{ marginTop: '12px', display: 'flex', gap: '12px' }}>
+            <button 
+              onClick={onClose}
+              style={{ flex: 1, padding: '12px', borderRadius: '8px', background: 'var(--color-brand-accent)', color: '#fff', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+            >
+              ACKNOWLEDGE & CLOSE
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function DetailSection({ label, value, color, large, fallback }) {
+  const displayValue = value || fallback || '—'
+  return (
+    <div>
+      <div style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '1px', marginBottom: '2px' }}>
+        {label.toUpperCase()}
+      </div>
+      <div style={{ 
+        fontSize: large ? '16px' : '14px', 
+        fontWeight: large ? 600 : 500, 
+        color: color || 'var(--text-primary)',
+        lineHeight: 1.4
+      }}>
+        {displayValue}
       </div>
     </div>
   )

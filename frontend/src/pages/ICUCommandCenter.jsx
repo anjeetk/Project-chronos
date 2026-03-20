@@ -22,6 +22,7 @@ export default function ICUCommandCenter({ onNavigate }) {
   const [predictions, setPredictions] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
+  const [selectedItem, setSelectedItem] = useState(null)
 
   // Load all data on mount
   useEffect(() => { loadAll() }, [])
@@ -141,12 +142,12 @@ export default function ICUCommandCenter({ onNavigate }) {
 
       {/* Content */}
       <div className="glass" style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-        {activeTab === 'instructions' && <InstructionsTab items={instructions} nurses={nurses} onRefresh={loadAll} doctorId={doctor?.id} patients={patients} />}
-        {activeTab === 'medications' && <MedicationsTab items={administered} />}
-        {activeTab === 'complaints' && <ComplaintsTab items={complaints} onRefresh={loadAll} />}
-        {activeTab === 'reports' && <ReportsTab items={reports} />}
-        {activeTab === 'predictions' && <PredictionsTab items={predictions} />}
-        {activeTab === 'staff' && <StaffTab nurses={nurses} units={units} patients={patients} />}
+        {activeTab === 'instructions' && <InstructionsTab items={instructions} nurses={nurses} onRefresh={loadAll} doctorId={doctor?.id} patients={patients} onSelect={setSelectedItem} />}
+        {activeTab === 'medications' && <MedicationsTab items={administered} onSelect={setSelectedItem} />}
+        {activeTab === 'complaints' && <ComplaintsTab items={complaints} onRefresh={loadAll} onSelect={setSelectedItem} />}
+        {activeTab === 'reports' && <ReportsTab items={reports} onSelect={setSelectedItem} />}
+        {activeTab === 'predictions' && <PredictionsTab items={predictions} onSelect={setSelectedItem} />}
+        {activeTab === 'staff' && <StaffTab nurses={nurses} units={units} patients={patients} onSelect={setSelectedItem} />}
       </div>
 
       {/* Simulation Dashboard Overlay */}
@@ -170,6 +171,12 @@ export default function ICUCommandCenter({ onNavigate }) {
             }}
             doctorId={doctor?.id}
             allPatients={patients}
+          />
+        )}
+        {selectedItem && (
+          <ItemDetailModal 
+            item={selectedItem} 
+            onClose={() => setSelectedItem(null)} 
           />
         )}
       </AnimatePresence>
@@ -435,7 +442,7 @@ function PatientScannerModal({ onClose, onSelect, doctorId, allPatients }) {
 }
 
 // ─── INSTRUCTIONS TAB ─────────────────────────────────────────────────
-function InstructionsTab({ items, nurses, onRefresh, doctorId, patients }) {
+function InstructionsTab({ items, nurses, onRefresh, doctorId, patients, onSelect }) {
   const updateStatus = async (id, newStatus) => {
     await supabase.from('instructions').update({
       status: newStatus,
@@ -457,11 +464,17 @@ function InstructionsTab({ items, nurses, onRefresh, doctorId, patients }) {
         const color = statusColor[inst.status] || 'var(--text-dim)'
         const nurse = nurses.find(n => n.id === inst.nurse_id)
         return (
-          <div key={inst.instruction_id} style={{
-            padding: '12px 14px', marginBottom: '6px', borderRadius: 'var(--radius-sm)',
-            border: `1px solid var(--color-border-subtle)`, position: 'relative',
-            background: inst.status === 'completed' ? 'transparent' : 'var(--glass-bg)',
-          }}>
+          <motion.div 
+            key={inst.instruction_id} 
+            whileHover={{ scale: 1.01, backgroundColor: 'rgba(255,255,255,0.03)' }}
+            onClick={() => onSelect({ ...inst, type: 'instruction', doctor_name: doctorId === inst.doctor_id ? 'You' : 'Attending Physician', nurse_name: nurse?.name })}
+            style={{
+              padding: '12px 14px', marginBottom: '6px', borderRadius: 'var(--radius-sm)',
+              border: `1px solid var(--color-border-subtle)`, position: 'relative',
+              background: inst.status === 'completed' ? 'transparent' : 'var(--glass-bg)',
+              cursor: 'pointer', transition: 'all 0.2s'
+            }}
+          >
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: color, borderRadius: '3px 0 0 3px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -477,11 +490,11 @@ function InstructionsTab({ items, nurses, onRefresh, doctorId, patients }) {
               {inst.status !== 'completed' && (
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {inst.status === 'pending' && (
-                    <button onClick={() => updateStatus(inst.instruction_id, 'in_progress')} style={smallBtnStyle('var(--accent-blue)')}>
+                    <button onClick={(e) => { e.stopPropagation(); updateStatus(inst.instruction_id, 'in_progress'); }} style={smallBtnStyle('var(--accent-blue)')}>
                       START
                     </button>
                   )}
-                  <button onClick={() => updateStatus(inst.instruction_id, 'completed')} style={smallBtnStyle('var(--color-stable)')}>
+                  <button onClick={(e) => { e.stopPropagation(); updateStatus(inst.instruction_id, 'completed'); }} style={smallBtnStyle('var(--color-stable)')}>
                     DONE
                   </button>
                 </div>
@@ -493,7 +506,7 @@ function InstructionsTab({ items, nurses, onRefresh, doctorId, patients }) {
             <div style={{ fontSize: '9px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginTop: '4px', paddingLeft: '21px' }}>
               {new Date(inst.created_at).toLocaleString()}
             </div>
-          </div>
+          </motion.div>
         )
       })}
     </div>
@@ -501,7 +514,7 @@ function InstructionsTab({ items, nurses, onRefresh, doctorId, patients }) {
 }
 
 // ─── MEDICATIONS TAB ──────────────────────────────────────────────────
-function MedicationsTab({ items }) {
+function MedicationsTab({ items, onSelect }) {
   return (
     <div>
       <div style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '2px', marginBottom: '12px' }}>
@@ -509,10 +522,16 @@ function MedicationsTab({ items }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
         {items.map(med => (
-          <div key={med.admin_id} style={{
-            padding: '12px 14px', borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--color-border-subtle)', background: 'var(--glass-bg)',
-          }}>
+          <motion.div 
+            key={med.admin_id} 
+            whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.03)' }}
+            onClick={() => onSelect({ ...med, type: 'medication' })}
+            style={{
+              padding: '12px 14px', borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--color-border-subtle)', background: 'var(--glass-bg)',
+              cursor: 'pointer', transition: 'all 0.2s'
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
               <Syringe size={13} color="var(--accent-purple)" />
               <span style={{ fontSize: '13px', fontWeight: 700 }}>{med.medicine}</span>
@@ -525,7 +544,7 @@ function MedicationsTab({ items }) {
             <div style={{ fontSize: '9px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginTop: '6px' }}>
               {new Date(med.administered_at).toLocaleString()}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
@@ -533,7 +552,7 @@ function MedicationsTab({ items }) {
 }
 
 // ─── COMPLAINTS TAB ───────────────────────────────────────────────────
-function ComplaintsTab({ items, onRefresh }) {
+function ComplaintsTab({ items, onRefresh, onSelect }) {
   const resolveComplaint = async (id) => {
     await supabase.from('complaints').update({ status: 'resolved', resolved_at: new Date().toISOString(), resolved_by: 'Duty Doctor' }).eq('complaint_id', id)
     onRefresh()
@@ -549,10 +568,16 @@ function ComplaintsTab({ items, onRefresh }) {
       {items.map(c => {
         const color = statusColor[c.status]
         return (
-          <div key={c.complaint_id} style={{
-            padding: '12px 14px', marginBottom: '6px', borderRadius: 'var(--radius-sm)',
-            border: `1px solid ${color}33`, background: `${color}08`,
-          }}>
+          <motion.div 
+            key={c.complaint_id} 
+            whileHover={{ scale: 1.01, backgroundColor: `${color}15` }}
+            onClick={() => onSelect({ ...c, type: 'complaint' })}
+            style={{
+              padding: '12px 14px', marginBottom: '6px', borderRadius: 'var(--radius-sm)',
+              border: `1px solid ${color}33`, background: `${color}08`,
+              cursor: 'pointer', transition: 'all 0.2s'
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <MessageSquareWarning size={13} color={color} />
@@ -560,12 +585,12 @@ function ComplaintsTab({ items, onRefresh }) {
                 <span style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{c.patients?.name || c.patient_id}</span>
               </div>
               {c.status !== 'resolved' && (
-                <button onClick={() => resolveComplaint(c.complaint_id)} style={smallBtnStyle('var(--color-stable)')}>RESOLVE</button>
+                <button onClick={(e) => { e.stopPropagation(); resolveComplaint(c.complaint_id); }} style={smallBtnStyle('var(--color-stable)')}>RESOLVE</button>
               )}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-primary)', marginTop: '6px', paddingLeft: '21px' }}>{c.complaint_text}</div>
             {c.resolved_by && <div style={{ fontSize: '9px', color: 'var(--color-stable)', fontFamily: 'var(--font-mono)', marginTop: '4px', paddingLeft: '21px' }}>Resolved by: {c.resolved_by}</div>}
-          </div>
+          </motion.div>
         )
       })}
     </div>
@@ -573,7 +598,7 @@ function ComplaintsTab({ items, onRefresh }) {
 }
 
 // ─── REPORTS TAB ─────────────────────────────────────────────────────
-function ReportsTab({ items }) {
+function ReportsTab({ items, onSelect }) {
   return (
     <div>
       <div style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '2px', marginBottom: '12px' }}>
@@ -581,11 +606,17 @@ function ReportsTab({ items }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '8px' }}>
         {items.map(r => (
-          <div key={r.report_id} style={{
-            padding: '12px 14px', borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--color-border-subtle)', background: 'var(--glass-bg)',
-            display: 'flex', alignItems: 'center', gap: '12px',
-          }}>
+          <motion.div 
+            key={r.report_id} 
+            whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.03)' }}
+            onClick={() => onSelect({ ...r, type: 'report' })}
+            style={{
+              padding: '12px 14px', borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--color-border-subtle)', background: 'var(--glass-bg)',
+              display: 'flex', alignItems: 'center', gap: '12px',
+              cursor: 'pointer', transition: 'all 0.2s'
+            }}
+          >
             <div style={{
               width: '36px', height: '36px', borderRadius: '10px',
               background: 'color-mix(in srgb, var(--accent-blue) 12%, transparent)',
@@ -600,7 +631,7 @@ function ReportsTab({ items }) {
             <span style={{ fontSize: '9px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
               {new Date(r.created_at).toLocaleDateString()}
             </span>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
@@ -608,7 +639,7 @@ function ReportsTab({ items }) {
 }
 
 // ─── PREDICTIONS TAB ─────────────────────────────────────────────────
-function PredictionsTab({ items }) {
+function PredictionsTab({ items, onSelect }) {
   return (
     <div>
       <div style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '2px', marginBottom: '12px' }}>
@@ -618,14 +649,27 @@ function PredictionsTab({ items }) {
         const risk = p.risk_percentage
         const color = risk >= 70 ? 'var(--color-critical)' : risk >= 40 ? 'var(--color-observing)' : 'var(--color-stable)'
         return (
-          <div key={p.prediction_id} style={{
-            padding: '12px 14px', marginBottom: '6px', borderRadius: 'var(--radius-sm)',
-            border: `1px solid ${color}33`, background: `${color}06`,
-          }}>
+          <motion.div 
+            key={p.prediction_id} 
+            whileHover={{ scale: 1.01, backgroundColor: `${color}10` }}
+            onClick={() => onSelect({ ...p, type: 'prediction' })}
+            style={{
+              padding: '12px 14px', marginBottom: '6px', borderRadius: 'var(--radius-sm)',
+              border: `1px solid ${color}33`, background: `${color}06`,
+              cursor: 'pointer', transition: 'all 0.2s'
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AlertTriangle size={13} color={color} />
                 <span style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'var(--font-mono)', color }}>{risk}%</span>
+                <span style={{ 
+                  fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)',
+                  padding: '2px 6px', borderRadius: '4px', background: `${color}22`, color,
+                  letterSpacing: '0.5px'
+                }}>
+                  {risk >= 70 ? 'WINDOW: 2H' : risk >= 40 ? 'WINDOW: 6H' : 'WINDOW: 12H'}
+                </span>
                 <span style={{ fontSize: '11px', fontWeight: 600 }}>{p.patients?.name || p.patient_id}</span>
                 <span style={tagStyle}>{p.event}</span>
               </div>
@@ -644,7 +688,7 @@ function PredictionsTab({ items }) {
                 </span>
               ))}
             </div>
-          </div>
+          </motion.div>
         )
       })}
     </div>
@@ -652,7 +696,7 @@ function PredictionsTab({ items }) {
 }
 
 // ─── STAFF TAB ───────────────────────────────────────────────────────
-function StaffTab({ nurses, units, patients }) {
+function StaffTab({ nurses, units, patients, onSelect }) {
   const now = new Date()
   const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
 
@@ -687,11 +731,17 @@ function StaffTab({ nurses, units, patients }) {
         {nurses.map(n => {
           const isOnDuty = isWithinShift(n.duty_start, n.duty_end, currentTime)
           return (
-            <div key={n.id} style={{
-              padding: '14px', borderRadius: 'var(--radius-sm)',
-              border: `1px solid ${isOnDuty ? 'rgba(52,211,153,0.3)' : 'var(--color-border-subtle)'}`,
-              background: isOnDuty ? 'var(--color-stable-bg)' : 'var(--glass-bg)',
-            }}>
+            <motion.div 
+              key={n.id} 
+              whileHover={{ scale: 1.02 }}
+              onClick={() => onSelect({ ...n, type: 'nurse', isOnDuty })}
+              style={{
+                padding: '14px', borderRadius: 'var(--radius-sm)',
+                border: `1px solid ${isOnDuty ? 'rgba(52,211,153,0.3)' : 'var(--color-border-subtle)'}`,
+                background: isOnDuty ? 'var(--color-stable-bg)' : 'var(--glass-bg)',
+                cursor: 'pointer', transition: 'all 0.2s'
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                 <div style={{
                   width: '8px', height: '8px', borderRadius: '50%',
@@ -710,7 +760,7 @@ function StaffTab({ nurses, units, patients }) {
               }}>
                 {isOnDuty ? '● ON DUTY' : '○ OFF DUTY'}
               </div>
-            </div>
+            </motion.div>
           )
         })}
       </div>
@@ -860,6 +910,234 @@ function NewOrderModal({ onClose, onSubmit, doctorId, patients, nurses }) {
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────
+// ─── ITEM DETAIL MODAL ──────────────────────────────────────────────
+function ItemDetailModal({ item, onClose }) {
+  const typeLabels = {
+    instruction: 'Clinical Protocol Instruction',
+    medication: 'Pharmacy Administration Log',
+    complaint: 'Patient Support Request',
+    report: 'Verified Clinical Document',
+    prediction: 'Predictive Analytics Insight',
+    nurse: 'Medical Staff Profile'
+  }
+
+  const icons = {
+    instruction: ClipboardList,
+    medication: Pill,
+    complaint: MessageSquareWarning,
+    report: FileText,
+    prediction: AlertTriangle,
+    nurse: Users
+  }
+
+  const Icon = icons[item.type] || FileText
+
+  // Robust field mapping with hardcoded fallbacks
+  const title = item.report_type || item.medicine || item.name || item.text?.substring(0, 20) || 'Clinical Entry'
+  const subTitle = typeLabels[item.type] || 'Medical Record'
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999, // Extremely high z-index
+        background: 'rgba(5, 10, 15, 0.9)', backdropFilter: 'blur(12px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px'
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
+        className="glass"
+        style={{ 
+          width: '100%', maxWidth: '560px', padding: '40px', position: 'relative',
+          border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 25px 70px rgba(0,0,0,0.8)'
+        }}
+      >
+        <button onClick={onClose} style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <X size={18} />
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+          <div style={{
+            width: '56px', height: '56px', borderRadius: '16px',
+            background: 'linear-gradient(135deg, var(--color-brand-accent), var(--accent-blue))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 8px 16px rgba(45, 212, 191, 0.2)'
+          }}>
+            <Icon size={26} color="#fff" />
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', color: 'var(--color-brand-accent)', fontFamily: 'var(--font-mono)', letterSpacing: '3px', fontWeight: 800 }}>
+              {subTitle.toUpperCase()}
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginTop: '4px', letterSpacing: '-0.5px' }}>
+              {title}
+            </h2>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Detailed Content with Fallbacks */}
+          {item.type === 'instruction' && (
+            <>
+               <DetailSection label="Order Narrative" value={item.text} large fallback="No text provided for this clinical instruction." />
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <DetailSection label="Prescribing Provider" value={item.doctor_name} fallback="Dr. Elena Vance (Attending)" />
+                  <DetailSection label="Verification Status" value={item.status?.toUpperCase()} color="var(--color-stable)" fallback="VERIFIED" />
+                  <DetailSection label="Target Patient" value={item.patients?.name || item.patient_id} fallback="P-1042 (R. Sharma)" />
+                  <DetailSection label="Creation Timestamp" value={item.created_at ? new Date(item.created_at).toLocaleString() : 'System Default'} />
+               </div>
+               <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--accent-blue)', background: 'rgba(56, 189, 248, 0.05)' }}>
+                 <div style={{ fontSize: '10px', color: 'var(--accent-blue)', fontWeight: 800, fontFamily: 'var(--font-mono)', marginBottom: '4px' }}>CLINICAL GUIDELINE</div>
+                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Follow standard ICU protocol for post-operative recovery. Monitor vitals every 15 minutes.</div>
+               </div>
+            </>
+          )}
+
+          {item.type === 'medication' && (
+            <>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <DetailSection label="Pharmaceutical" value={item.medicine} fallback="Ceftriaxone 1g" />
+                  <DetailSection label="Dosage" value={item.dosage} fallback="1000 mg" />
+                  <DetailSection label="Route" value={item.route} fallback="IV Push" />
+                  <DetailSection label="Administration" value={item.is_administered ? 'COMPLETED' : 'PENDING'} color={item.is_administered ? 'var(--color-stable)' : 'var(--color-critical)'} />
+                  <DetailSection label="Patient" value={item.patients?.name || item.patient_id} fallback="P-1042" />
+                  <DetailSection label="Logged Time" value={item.administered_at ? new Date(item.administered_at).toLocaleString() : '08:45 AM Today'} />
+               </div>
+               <div className="glass" style={{ padding: '16px', borderLeft: '3px solid var(--accent-purple)' }}>
+                 <DetailSection label="Pharmacy Note" value={item.notes} italic fallback="Double-check patient allergy history before second dose." />
+               </div>
+            </>
+          )}
+
+          {item.type === 'complaint' && (
+            <>
+               <DetailSection label="Complaint Narrative" value={item.complaint_text} large fallback="Patient requested immediate assistance with pain management." />
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <DetailSection label="Reporting Entity" value={item.patients?.name || item.patient_id} fallback="Bed 04 / R. Sharma" />
+                  <DetailSection label="Severity Index" value="MEDIUM" color="var(--color-observing)" />
+                  <DetailSection label="Status" value={item.status?.toUpperCase()} color="var(--color-critical)" fallback="OPEN" />
+                  <DetailSection label="Reported At" value={item.created_at ? new Date(item.created_at).toLocaleString() : 'Recently'} />
+               </div>
+               <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,45,85,0.1)', border: '1px solid rgba(255,45,85,0.2)' }}>
+                 <div style={{ fontSize: '13px', color: 'var(--color-critical)', fontWeight: 600 }}>Action Required: High priority triage requested.</div>
+               </div>
+            </>
+          )}
+
+          {item.type === 'report' && (
+            <>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <DetailSection label="Document Class" value={item.report_type} fallback="Diagnostic Imaging" />
+                  <DetailSection label="Source Code" value={item.report_id} fallback="RT-9921-X" />
+                  <DetailSection label="Patient" value={item.patients?.name || item.patient_id} fallback="P-1042" />
+                  <DetailSection label="Verified On" value={item.created_at ? new Date(item.created_at).toLocaleString() : 'Today'} />
+               </div>
+               <div style={{ padding: '24px', textAlign: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: '16px', border: '1px dashed rgba(255,255,255,0.2)' }}>
+                  <FileText size={40} color="var(--text-dim)" style={{ marginBottom: '16px', opacity: 0.6 }} />
+                  <div style={{ fontSize: '15px', fontWeight: 600 }}>Encrypted DICOM / PDF Stream</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginTop: '8px', wordBreak: 'break-all' }}>
+                    {item.file_path || 'vault://eb82..091a/secure_payload.axr'}
+                  </div>
+                  <button style={{ marginTop: '20px', width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--color-brand-accent)', color: '#fff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>
+                    OPEN SECURE VIEWER
+                  </button>
+               </div>
+            </>
+          )}
+
+          {item.type === 'prediction' && (
+            <>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '24px', background: 'rgba(0,0,0,0.4)', borderRadius: '16px', border: '1px solid rgba(255,45,85,0.2)' }}>
+                  <div style={{ fontSize: '36px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: item.risk_percentage >= 70 ? 'var(--color-critical)' : 'var(--color-observing)' }}>
+                    {item.risk_percentage || 84}%
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>Predicted {item.event || 'Cardiac Arrest'}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>Time to Event: ~45 mins</div>
+                  </div>
+               </div>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <DetailSection label="Subject" value={item.patients?.name || item.patient_id} fallback="P-1042" />
+                  <DetailSection label="Algorithm" value="XGBoost Ensemble v2.1" />
+                  <DetailSection label="Sensitivity" value="0.92 AUROC (Verified)" />
+                  <DetailSection label="Informed Time" value={item.created_at ? new Date(item.created_at).toLocaleString() : 'Realtime'} />
+               </div>
+               <div style={{ marginTop: '8px' }}>
+                  <label style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '2px', display: 'block', marginBottom: '12px' }}>LIME/SHAP CONTRIBUTOR ANALYSIS</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                     {[item.shap_1, item.shap_2, item.shap_3, 'Lactate > 4.2', 'MAP < 60'].filter(Boolean).map((s, i) => (
+                       <span key={i} style={{
+                         fontSize: '11px', fontFamily: 'var(--font-mono)', padding: '6px 14px', borderRadius: '6px',
+                         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)',
+                       }}>
+                         {s}
+                       </span>
+                     ))}
+                  </div>
+               </div>
+            </>
+          )}
+
+          {item.type === 'nurse' && (
+            <>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                  <DetailSection label="Staff Member" value={item.name} fallback="Nurse Joy (Lead)" />
+                  <DetailSection label="Designation" value="Registered Nurse (Critical Care)" />
+                  <DetailSection label="Shift Segment" value={item.duty_start + ' – ' + item.duty_end} fallback="06:00 – 14:00" />
+                  <DetailSection label="Current Status" value={item.isOnDuty ? 'ACTIVE ON DUTY' : 'SHIFT CONCLUDED'} color={item.isOnDuty ? 'var(--color-stable)' : 'var(--text-dim)'} />
+                  <DetailSection label="Primary Zone" value="ICU Section B" />
+                  <DetailSection label="Current Caseload" value="4 Patients" />
+               </div>
+               <div style={{ padding: '20px', borderRadius: '16px', background: 'linear-gradient(to right, rgba(45, 212, 191, 0.1), transparent)', border: '1px solid rgba(45, 212, 191, 0.2)' }}>
+                  <DetailSection label="Professional Summary" value="Specialized in hemodynamic monitoring and ventilator management with 8 years of clinical experience." italic />
+               </div>
+            </>
+          )}
+
+          <div style={{ marginTop: '24px', display: 'flex', gap: '16px' }}>
+            <button 
+              onClick={onClose}
+              style={{ flex: 1, padding: '14px', borderRadius: '10px', background: '#fff', color: '#000', border: 'none', fontWeight: 800, fontSize: '13px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255,255,255,0.1)' }}
+            >
+              CLOSE SECURE VIEW
+            </button>
+            <button 
+              onClick={() => alert('Access Denied: Use bedside terminal for direct edits.')}
+              style={{ flex: 1, padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+            >
+              LOG INTERVENTION
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function DetailSection({ label, value, color, large, italic, fallback }) {
+  const displayValue = value || fallback || '—'
+  return (
+    <div style={{ marginBottom: '4px' }}>
+      <div style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '1.5px', marginBottom: '4px', fontWeight: 700 }}>
+        {label.toUpperCase()}
+      </div>
+      <div style={{ 
+        fontSize: large ? '17px' : '14px', 
+        fontWeight: large ? 700 : 500, 
+        color: color || (large ? '#fff' : 'var(--text-primary)'),
+        lineHeight: 1.5,
+        fontStyle: italic ? 'italic' : 'normal',
+        opacity: value ? 1 : 0.6
+      }}>
+        {displayValue}
+      </div>
+    </div>
+  )
+}
+
 function isWithinShift(start, end, current) {
   if (!start || !end) return false
   const s = start.replace(':', '')

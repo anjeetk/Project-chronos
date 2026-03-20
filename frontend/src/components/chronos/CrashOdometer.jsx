@@ -40,6 +40,10 @@ export default function CrashOdometer({ value }) {
     : value > 0.4 ? 'var(--color-observing)'
     : 'var(--color-stable)'
 
+  const windowText = value > 0.7 ? 'IN NEXT 2 HRS'
+    : value > 0.4 ? 'IN NEXT 6 HRS'
+    : 'IN NEXT 12 HRS'
+
   return (
     <div style={{
       display: 'flex',
@@ -53,6 +57,7 @@ export default function CrashOdometer({ value }) {
         letterSpacing: '1.5px',
         marginBottom: '2px',
       }}>CRASH PROBABILITY</div>
+      
       <div style={{
         display: 'flex',
         alignItems: 'baseline',
@@ -62,10 +67,31 @@ export default function CrashOdometer({ value }) {
         color,
         letterSpacing: '-2px',
         lineHeight: 1,
-        textShadow: value > 0.7 ? `0 0 20px ${color}` : 'none',
+        textShadow: value > 0.7 ? `0 0 20px ${color}44` : 'none',
+        position: 'relative'
       }}>
         {digits.map((d, i) => <Digit key={`${i}-pos`} value={d} />)}
         <span style={{ fontSize: '20px', opacity: 0.6, marginLeft: '2px', letterSpacing: '0' }}>%</span>
+      </div>
+
+      <div style={{
+        marginTop: '6px',
+        padding: '3px 8px',
+        background: `${color}11`,
+        border: `1px solid ${color}33`,
+        borderRadius: 'var(--radius-full)',
+        fontSize: '9px',
+        fontWeight: 700,
+        fontFamily: 'var(--font-mono)',
+        color,
+        letterSpacing: '0.5px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        animation: value > 0.7 ? 'pulse-critical 1.5s infinite' : 'none'
+      }}>
+        <div style={{ width: 4, height: 4, borderRadius: '50%', background: color }} />
+        WINDOW: {windowText}
       </div>
     </div>
   )

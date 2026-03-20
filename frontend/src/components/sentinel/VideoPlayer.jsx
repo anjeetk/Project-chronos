@@ -28,6 +28,8 @@ const VideoPlayer = forwardRef(function VideoPlayer({
   onSeek,
   liveMode = false,
   demoMode = false,
+  idleMode = false,
+  validating = false,
   cameraMode = 'webcam',
   totalFrames = 0,
   currentFrameIdx = 0,
@@ -208,9 +210,9 @@ const VideoPlayer = forwardRef(function VideoPlayer({
           <>
             {/* CAM 01 - Laparoscopic */}
             <div style={{ flex: 1, position: 'relative', background: 'var(--bg-abyss)', borderRight: '1px solid var(--glass-border)' }}>
-              <video
+            <video
                 ref={ref}
-                preload="auto"
+                preload={demoMode ? "auto" : "none"}
                 onLoadedMetadata={(e) => onLoadedMetadata(e.target.duration)}
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 muted={false}
@@ -272,6 +274,77 @@ const VideoPlayer = forwardRef(function VideoPlayer({
           </>
         )}
 
+        {/* ════════════  STANDBY / IDLE MODE  ════════════ */}
+        {idleMode && !validating && (
+          <div style={{
+            flex: 1, position: 'relative', background: 'radial-gradient(circle at center, #0f172a, #020617)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: '24px', border: '1px solid var(--glass-border)', borderRadius: '4px',
+          }}>
+            <div style={{
+              width: '80px', height: '80px', borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              animation: 'pulse-dot 4s infinite ease-in-out'
+            }}>
+              <RotateCcw size={32} color="var(--text-dim)" style={{ opacity: 0.3 }} />
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--accent-cyan)', letterSpacing: '2px', fontWeight: 800, marginBottom: '8px' }}>
+                SENTINEL SECURE CORE // STANDBY
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-secondary)' }}>Awaiting Flight Recorder Initialization</h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-dim)', maxWidth: '280px', margin: '12px auto 0' }}>
+                Select a patient and click "START OPERATION" to begin cryptographic stream recording.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════  VALIDATION MODE  ════════════ */}
+        {validating && (
+          <div style={{
+            flex: 1, position: 'relative', background: 'var(--bg-abyss)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: '32px'
+          }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                width: '120px', height: '120px', borderRadius: '50%',
+                border: '2px solid rgba(45, 212, 191, 0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <div style={{
+                  width: '100px', height: '100px', borderRadius: '50%',
+                  border: '3px solid transparent', borderTopColor: 'var(--color-brand-accent)',
+                  animation: 'spin 0.8s linear infinite'
+                }} />
+              </div>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIcon size={32} color="var(--color-brand-accent)" style={{ animation: 'bounce 1s infinite' }} />
+              </div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-brand-accent)', fontWeight: 800, letterSpacing: '4px' }}>
+                VALIDATING STREAM INTEGRITY...
+              </span>
+              <div style={{ 
+                width: '300px', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', 
+                marginTop: '20px', overflow: 'hidden', position: 'relative'
+              }}>
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, bottom: 0,
+                  background: 'var(--color-brand-accent)',
+                  animation: 'shimmer-loading 2s infinite ease-out'
+                }} />
+              </div>
+              <div style={{ marginTop: '12px', fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
+                ESTABLISHING DETERMINISTIC HASH CHAIN // SHA-256
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ════════════  LIVE MODE: Single OAK-D Feed  ════════════ */}
         {liveMode && (
           <div style={{ flex: 1, position: 'relative', background: 'var(--bg-abyss)' }}>
@@ -327,7 +400,7 @@ const VideoPlayer = forwardRef(function VideoPlayer({
         )}
 
         {/* ════════════  REVIEW MODE: Recorded Frame + Vitals  ════════════ */}
-        {!liveMode && !demoMode && (
+        {!liveMode && !demoMode && !idleMode && !validating && (
           <>
             {/* Frame display */}
             <div style={{ flex: useFramePlayback ? 2 : 1, position: 'relative', background: 'var(--bg-abyss)', borderRight: useFramePlayback ? '1px solid var(--glass-border)' : 'none' }}>
@@ -377,12 +450,11 @@ const VideoPlayer = forwardRef(function VideoPlayer({
               }}>
                 <VitalsDetailPanel vitals={reviewVitals} />
               </div>
-            )}
-          </>
         )}
+      </>
+    )}
 
-        {/* Playback Controls (demo + review modes only) */}
-        {!liveMode && (
+    {!liveMode && !idleMode && !validating && (
           <div style={{
             position: 'absolute',
             bottom: '16px',

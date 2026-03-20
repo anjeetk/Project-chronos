@@ -111,6 +111,13 @@ function PatientCard({ patient, isSelected, onClick, rank }) {
           </span>
           <span style={{ fontWeight: 600, fontSize: '13px' }}>Bed {patient.bed}</span>
           <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{patient.name}</span>
+          <span style={{ 
+            fontSize: '8px', fontWeight: 800, fontFamily: 'var(--font-mono)',
+            padding: '2px 6px', borderRadius: '4px', background: `${borderColor}22`, color: borderColor,
+            letterSpacing: '0.5px'
+          }}>
+            {patient.status === 'critical' ? '2H' : patient.status === 'observing' ? '6H' : '12H'}
+          </span>
         </div>
         <RiskBadge value={patient.aggregateRisk} status={patient.status} />
       </div>

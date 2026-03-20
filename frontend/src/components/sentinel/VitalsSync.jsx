@@ -7,7 +7,7 @@ const VITALS = [
   { key: 'motion_score', label: 'Motion', unit: 'score', icon: Eye, color: 'var(--accent-amber)', critical: v => v > 30 },
 ]
 
-export default function VitalsSync({ frame }) {
+export default function VitalsSync({ frame, idleMode = false }) {
   if (!frame) {
     return (
       <div style={{
@@ -28,11 +28,25 @@ export default function VitalsSync({ frame }) {
   }
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(4, 1fr)',
-      gap: '10px',
-    }}>
+    <div style={{ position: 'relative' }}>
+      {idleMode && (
+        <div style={{
+          position: 'absolute', top: '-11px', left: '16px', zIndex: 10,
+          background: 'var(--accent-cyan)', color: '#000',
+          padding: '2px 8px', borderRadius: '4px', fontSize: '9px', fontWeight: 800,
+          fontFamily: 'var(--font-mono)', letterSpacing: '1px',
+          boxShadow: '0 4px 12px rgba(45, 212, 191, 0.4)'
+        }}>
+          PRE-OP MONITORING // STANDBY VITALS
+        </div>
+      )}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '10px',
+        opacity: idleMode ? 0.75 : 1,
+        transition: 'all 0.4s ease'
+      }}>
       {VITALS.map(cfg => {
         const value = frame[cfg.key]
         const isCritical = cfg.critical(value)
@@ -92,6 +106,7 @@ export default function VitalsSync({ frame }) {
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

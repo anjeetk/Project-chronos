@@ -71,6 +71,10 @@ export default function VerificationPanel({ activeSessionId = null }) {
       } else {
         playBreachAlarm();
         playCriticalBeep();
+        // If parent is listening via window event (global for convenience in this hackathon)
+        if (typeof window.onSentinelTamperDetected === 'function') {
+          window.onSentinelTamperDetected({ seq: data.failed_at });
+        }
       }
     } catch (e) {
       setError(e.message);
@@ -262,46 +266,58 @@ export default function VerificationPanel({ activeSessionId = null }) {
               {result.ok ? (
                 <ShieldCheck size={20} style={{ color: '#10b981' }} />
               ) : (
-                <ShieldAlert size={20} style={{ color: '#ef4444', animation: 'pulse-critical 1s infinite' }} />
+                <AlertTriangle size={20} style={{ color: '#ef4444', animation: 'pulse-critical 1s infinite' }} />
               )}
               <span style={{ color: result.ok ? '#10b981' : '#ef4444', fontWeight: 700 }}>
                 {result.ok
-                  ? `✔ Verified — ${result.verified_count} records intact`
-                  : `✗ TAMPERING DETECTED at seq ${result.failed_at}`}
+                  ? `INTEGRITY VERIFIED`
+                  : `TAMPERING DETECTED`}
               </span>
             </div>
 
-            {!result.ok && (
+            {result.ok ? (
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                All {result.verified_count} records are mathematically cryptolocked and intact.
+              </div>
+            ) : (
               <div style={styles.mismatchDetails}>
-                <div style={{
-                  padding: '8px 10px',
-                  background: 'rgba(239, 68, 68, 0.06)',
-                  borderRadius: 6,
-                  border: '1px solid rgba(239, 68, 68, 0.15)',
-                  marginBottom: 6,
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', letterSpacing: '1px', marginBottom: 6 }}>
-                    ⚠ CHAIN INTEGRITY BROKEN
+                {/* Incident Section */}
+                <div style={styles.errorSection}>
+                  <div style={styles.sectionTitle}>[ INCIDENT REPORT ]</div>
+                  <div style={styles.detailRow}>
+                    <span>SEQUENCE:</span>
+                    <span style={{ fontWeight: 700, color: '#ff2d55' }}>#{result.failed_at}</span>
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>
-                    Hash mismatch detected — the recorded data has been altered after capture. 
-                    The cryptographic chain proves this record was tampered with.
+                  <div style={styles.detailRow}>
+                    <span>STATUS:</span>
+                    <span style={{ fontWeight: 700, color: '#ff2d55' }}>INTEGRITY BROKEN</span>
                   </div>
                 </div>
-                <div style={styles.hashRow}>
-                  <span style={styles.hashLabel}>Expected:</span>
-                  <code style={styles.hashValue}>{result.expected}</code>
-                </div>
-                <div style={styles.hashRow}>
-                  <span style={styles.hashLabel}>Got:</span>
-                  <code style={{ ...styles.hashValue, color: '#ef4444' }}>{result.got}</code>
-                </div>
-                {result.reason && (
-                  <div style={{ ...styles.hashRow, marginTop: 4 }}>
-                    <span style={{ ...styles.hashLabel, color: '#ef4444' }}>Reason:</span>
-                    <span style={styles.hashValue}>{result.reason}</span>
+
+                {/* Hash Comparison Section */}
+                <div style={styles.errorSection}>
+                  <div style={styles.sectionTitle}>[ HASH COMPARISON ]</div>
+                  <div style={styles.hashRow}>
+                    <span style={styles.hashLabel}>EXPECTED:</span>
+                    <code style={styles.hashValue} title={result.expected}>
+                      {result.expected ? `${result.expected.slice(0, 8)}...${result.expected.slice(-6)}` : 'N/A'}
+                    </code>
                   </div>
-                )}
+                  <div style={styles.hashRow}>
+                    <span style={styles.hashLabel}>ACTUAL:</span>
+                    <code style={{ ...styles.hashValue, color: '#ef4444' }} title={result.got}>
+                      {result.got ? `${result.got.slice(0, 8)}...${result.got.slice(-6)}` : 'N/A'}
+                    </code>
+                  </div>
+                </div>
+
+                {/* Root Cause Section */}
+                <div style={styles.errorSection}>
+                  <div style={styles.sectionTitle}>[ ROOT CAUSE ]</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    {result.reason || "Hash mismatch detected. The recorded data payload has been altered after capture."}
+                  </div>
+                </div>
               </div>
             )}
           </motion.div>
@@ -452,7 +468,30 @@ const styles = {
     marginTop: 10,
     display: 'flex',
     flexDirection: 'column',
+    gap: 12,
+  },
+  errorSection: {
+    display: 'flex',
+    flexDirection: 'column',
     gap: 4,
+    padding: '8px 10px',
+    background: 'rgba(255, 255, 255, 0.02)',
+    borderRadius: '8px',
+    border: '1px solid var(--glass-border)'
+  },
+  sectionTitle: {
+    fontSize: '9px',
+    fontWeight: 800,
+    color: 'var(--text-dim)',
+    letterSpacing: '1px',
+    marginBottom: '2px'
+  },
+  detailRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '10px',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-mono)'
   },
   hashRow: {
     display: 'flex',

@@ -93,7 +93,7 @@ export default function HashMatrix({ auditTrail, currentIdx, tamperActive, final
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: '9px', wordBreak: 'break-all',
             color: 'var(--text-secondary)'
-          }}>{auditTrail.length > 0 ? auditTrail[0].data_hash : 'AWAITING GENESIS...'}</div>
+          }}>{auditTrail.length > 0 ? (auditTrail[0].data_hash?.slice(0, 16) + '...') : 'AWAITING GENESIS...'}</div>
         </div>
 
         {/* Latest Block */}
@@ -119,7 +119,7 @@ export default function HashMatrix({ auditTrail, currentIdx, tamperActive, final
             textDecoration: tamperActive ? 'line-through' : 'none',
             opacity: tamperActive ? 0.8 : 1
           }}>
-            {tamperActive ? '0xef4d... [PAYLOAD ALTERED] ...f1c9 => MISMATCH' : finalHash}
+            {tamperActive ? '0xef4d... [ALTERED] ...f1c9' : (finalHash ? `${finalHash.slice(0, 12)}...${finalHash.slice(-8)}` : 'N/A')}
           </div>
         </div>
       </div>
@@ -145,7 +145,7 @@ export default function HashMatrix({ auditTrail, currentIdx, tamperActive, final
               fontSize: '8px', fontFamily: 'var(--font-mono)', wordBreak: 'break-all',
               color: 'var(--text-secondary)',
             }}>
-              {selectedEntry.prev_hash || '0'.repeat(64)}
+              {selectedEntry.prev_hash ? `${selectedEntry.prev_hash.slice(0, 16)}...` : '0'.repeat(16) + '...'}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -158,7 +158,7 @@ export default function HashMatrix({ auditTrail, currentIdx, tamperActive, final
               fontSize: '8px', fontFamily: 'var(--font-mono)', wordBreak: 'break-all',
               color: tamperActive ? 'var(--color-critical)' : 'var(--text-primary)',
             }}>
-              {selectedEntry.data_hash}
+              {selectedEntry.data_hash ? `${selectedEntry.data_hash.slice(0, 16)}...` : 'N/A'}
             </span>
           </div>
           <div style={{
@@ -186,7 +186,7 @@ export default function HashMatrix({ auditTrail, currentIdx, tamperActive, final
             OFF-CHAIN (IPFS)
           </span>
           <span style={{ fontSize: '7px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-            QmX7d...fP3r (mock CID)
+            QmX7d...fP3r
           </span>
         </div>
         <div style={{
@@ -231,7 +231,7 @@ export default function HashMatrix({ auditTrail, currentIdx, tamperActive, final
               transition: 'all 0.3s',
             }}
           >
-            {entry.data_hash}
+            {entry.data_hash ? (entry.data_hash.slice(0, 16) + '...') : 'NULL'}
           </div>
         ))}
       </div>

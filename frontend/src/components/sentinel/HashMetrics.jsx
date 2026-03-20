@@ -13,6 +13,7 @@ const API_BASE = 'http://localhost:8000';
 
 export default function HashMetrics({
   liveMode = false,
+  idleMode = false,
   liveSeq = 0,
   liveElapsed = 0,
   liveLatestHash = '',
@@ -28,7 +29,7 @@ export default function HashMetrics({
 
   // Polling for review mode
   useEffect(() => {
-    if (liveMode) return;
+    if (liveMode || idleMode) return;
 
     let interval;
     let lastSeq = 0;
@@ -68,13 +69,19 @@ export default function HashMetrics({
   }, [liveMode]);
 
   // Compute live metrics
-  const displayMetrics = liveMode ? {
+  const displayMetrics = idleMode ? {
+    hashPerSec: '0.0',
+    latencyMs: '—',
+    chainLength: 'STANDBY',
+    merkleBatches: '0',
+    running: false,
+  } : (liveMode ? {
     hashPerSec: liveElapsed > 0 ? (liveSeq / liveElapsed).toFixed(1) : '0',
     latencyMs: '—',
     chainLength: liveSeq,
     merkleBatches: liveBatchCount,
     running: true,
-  } : metrics;
+  } : metrics);
 
   const items = [
     {

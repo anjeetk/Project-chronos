@@ -56,7 +56,11 @@ export default function SentinelView() {
 
   // ── Tamper state ──
   const [tamperActive, setTamperActive] = useState(false)
+  const [validating, setValidating] = useState(false)
   const [tamperInfo, setTamperInfo] = useState(null)
+  const [baselineVitals, setBaselineVitals] = useState({
+    heart_rate: 72, spo2: 98, bp_sys: 120, motion_score: 0.1
+  })
 
   // Load review data
   useEffect(() => {
@@ -70,7 +74,15 @@ export default function SentinelView() {
       const { data } = await supabase.from('patients').select('*').order('id')
       if (data) {
         setPatients(data)
-        setSelectedPatientId(data[0]?.id || '')
+        const initialId = data[0]?.id || ''
+        setSelectedPatientId(initialId)
+        // Generate pseudo-random baseline
+        setBaselineVitals({
+          heart_rate: 65 + Math.floor(Math.random() * 20),
+          spo2: 97 + Math.floor(Math.random() * 3),
+          bp_sys: 110 + Math.floor(Math.random() * 30),
+          motion_score: 0.2
+        })
       }
     }
     load()
@@ -188,6 +200,11 @@ export default function SentinelView() {
     setShowStartModal(false)
     setStarting(true)
     setActivePatientId(selectedPatientId)
+    
+    // Virtual Stream Validation Phase
+    setValidating(true)
+    await new Promise(r => setTimeout(r, 2000)) 
+    
     try {
       const res = await fetch(`${API_BASE}/api/start`, { method: 'POST' })
       if (res.ok) {
@@ -206,6 +223,7 @@ export default function SentinelView() {
       console.error('[START] Failed:', e)
     } finally {
       setStarting(false)
+      setValidating(false)
     }
   }
 
@@ -255,13 +273,6 @@ export default function SentinelView() {
     }
   }
 
-  const handleTamper = () => {
-    setTamperActive(true)
-    setTamperInfo(null)
-    playBreachAlarm()
-    if (navigator.vibrate) navigator.vibrate([50, 30, 50])
-    setTimeout(() => setTamperActive(false), 3000)
-  }
 
   // ── Live vitals frame for VitalsSync ──
   const liveFrame = liveVitals ? {
@@ -327,6 +338,25 @@ export default function SentinelView() {
       handleSeek(time)
     }
   }
+
+  const handleTamper = useCallback((info = null) => {
+    setTamperActive(true)
+    setTamperInfo(info || { seq: 5 })
+    playBreachAlarm()
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50])
+    setTimeout(() => {
+      setTamperActive(false)
+      setTamperInfo(null)
+    }, 8000)
+  }, [])
+
+  // Global listener for tampering from VerificationPanel
+  useEffect(() => {
+    window.onSentinelTamperDetected = (info) => {
+      handleTamper(info)
+    }
+    return () => { window.onSentinelTamperDetected = null }
+  }, [handleTamper])
 
   const isLive = mode === 'live'
 
@@ -476,6 +506,7 @@ export default function SentinelView() {
         {/* Hash Metrics */}
         <HashMetrics
           liveMode={isLive}
+          idleMode={mode === 'idle'}
           liveSeq={liveSeq}
           liveElapsed={liveElapsed}
           liveLatestHash={liveLatestHash}
@@ -494,6 +525,8 @@ export default function SentinelView() {
           onSeek={handleReviewSeek}
           liveMode={isLive}
           demoMode={mode === 'demo'}
+          idleMode={mode === 'idle'}
+          validating={validating}
           cameraMode={cameraMode}
           totalFrames={hasRecordedSession ? liveChain.length : 0}
           currentFrameIdx={hasRecordedSession ? reviewFrameIdx : 0}
@@ -501,7 +534,11 @@ export default function SentinelView() {
         />
 
         {/* Vitals */}
-        <VitalsSync frame={isLive ? liveFrame : (hasRecordedSession ? reviewFrame : currentFrame)} liveMode={isLive} />
+        <VitalsSync 
+          frame={isLive ? liveFrame : (hasRecordedSession ? reviewFrame : (mode === 'idle' ? baselineVitals : currentFrame))} 
+          liveMode={isLive} 
+          idleMode={mode === 'idle'} 
+        />
 
         {/* Timeline (demo mode only — uses demo video duration) */}
         {mode === 'demo' && (
@@ -610,7 +647,15 @@ export default function SentinelView() {
               <label style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '1px', display: 'block', marginBottom: '4px' }}>PATIENT</label>
               <select 
                 value={selectedPatientId} 
-                onChange={e => setSelectedPatientId(e.target.value)} 
+                onChange={e => {
+                  setSelectedPatientId(e.target.value)
+                  setBaselineVitals({
+                    heart_rate: 68 + Math.floor(Math.random() * 15),
+                    spo2: 98 + Math.floor(Math.random() * 2),
+                    bp_sys: 115 + Math.floor(Math.random() * 20),
+                    motion_score: 0.1
+                  })
+                }} 
                 style={{ 
                   width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--input-border)', background: 'var(--input-bg)',

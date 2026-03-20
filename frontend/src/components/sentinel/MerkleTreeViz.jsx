@@ -1,240 +1,320 @@
-/**
- * MerkleTreeViz.jsx — Visual Merkle tree component.
- *
- * Shows: leaf hashes → intermediate → root → blockchain anchor
- * Animated tree building as records batch.
- */
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { GitBranch, Link2, Database, ShieldCheck, Cpu, AlertTriangle } from 'lucide-react';
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { GitBranch, Link2 } from 'lucide-react';
+export default function MerkleTreeViz({ auditTrail = [], batches = [], tamperActive = false, tamperSeq = null }) {
+  const [hoveredNode, setHoveredNode] = useState(null);
 
-export default function MerkleTreeViz({ auditTrail = [], batches = [] }) {
-  const [displayBatch, setDisplayBatch] = useState(null);
+  // Take the last 8 hashes for the viz
+  const leaves = useMemo(() => {
+    return auditTrail.slice(-8).map(r => ({
+      hash: r.chain_hash || r.hash || '00000000',
+      seq: r.seq || r.frame_idx
+    }));
+  }, [auditTrail]);
 
-  // Build a mini tree from the latest batch or last 8 hashes
-  useEffect(() => {
-    if (batches.length > 0) {
-      setDisplayBatch(batches[batches.length - 1]);
-    }
-  }, [batches]);
+  // Build the tree nodes and levels
+  const treeData = useMemo(() => {
+    if (leaves.length === 0) return { levels: [], lines: [], corruptedNodeIds: new Set() };
 
-  // Get last 8 hashes for visualization
-  const recentHashes = auditTrail.slice(-8).map((r) => r.chain_hash || r.hash);
+    const levels = [leaves.map((l, i) => ({ 
+      hash: l.hash, 
+      id: `L0-${i}`, 
+      level: 0, 
+      idx: i,
+      seq: l.seq,
+      short: l.hash.slice(0, 4) + '..' + l.hash.slice(-4),
+      isCorrupted: tamperActive && l.seq === tamperSeq
+    }))];
 
-  function buildTreeLevels(leaves) {
-    if (leaves.length === 0) return [];
-    const levels = [leaves];
-    let current = leaves;
+    // Build levels up to the root
+    let current = levels[0];
     while (current.length > 1) {
-      const next = [];
+      const nextLevel = [];
+      const currentLevelIdx = levels.length;
       for (let i = 0; i < current.length; i += 2) {
-        const a = current[i];
-        const b = i + 1 < current.length ? current[i + 1] : a;
-        next.push(hashPair(a, b));
+        const left = current[i];
+        const right = i + 1 < current.length ? current[i + 1] : left;
+        const parentHash = (left.hash.slice(0, 4) + right.hash.slice(0, 4)).padEnd(8, '0');
+        const isCorrupted = left.isCorrupted || right.isCorrupted;
+        
+        nextLevel.push({
+          hash: parentHash,
+          id: `L${currentLevelIdx}-${nextLevel.length}`,
+          level: currentLevelIdx,
+          idx: nextLevel.length,
+          short: parentHash.slice(0, 4) + '..' + parentHash.slice(-4),
+          isCorrupted,
+          children: [left.id, right.id]
+        });
       }
-      levels.push(next);
-      current = next;
+      levels.push(nextLevel);
+      current = nextLevel;
     }
-    return levels;
-  }
 
-  function hashPair(a, b) {
-    // Visual mock — just combine first chars
-    return (a.slice(0, 4) + b.slice(0, 4)).padEnd(8, '0');
-  }
+    // Generate line data (connections)
+    const lines = [];
+    const corruptedNodeIds = new Set();
+    levels.forEach((level, li) => {
+      level.forEach((node) => {
+        if (node.isCorrupted) corruptedNodeIds.add(node.id);
+        if (li === 0) return;
+        node.children.forEach(childId => {
+          lines.push({ from: childId, to: node.id, isCorrupted: node.isCorrupted });
+        });
+      });
+    });
 
-  const treeLevels = buildTreeLevels(recentHashes.map((h) => h?.slice(0, 8) || '--------'));
-  const root = treeLevels.length > 0 ? treeLevels[treeLevels.length - 1][0] : '--------';
+    return { levels, lines, corruptedNodeIds };
+  }, [leaves, tamperActive, tamperSeq]);
+
+  const latestBatch = batches[batches.length - 1];
+  const anchorStatus = latestBatch ? 'Anchored' : 'Awaiting Batch...';
+  const anchorColor = tamperActive ? 'var(--color-critical)' : (latestBatch ? 'var(--color-stable)' : 'var(--accent-amber)');
+
+  const getPos = (level, idx, totalInLevel) => {
+    const height = 180;
+    const width = 300;
+    const y = height - (level * 45) - 20;
+    const x = (width / (totalInLevel + 1)) * (idx + 1);
+    return { x, y };
+  };
+
+  const formatHash = (h) => `${h.slice(0, 8)}...${h.slice(-6)}`;
 
   return (
-    <div style={styles.container}>
+    <div className="glass" style={styles.container}>
       <div style={styles.header}>
-        <GitBranch size={16} style={{ color: 'var(--accent)' }} />
-        <span style={styles.title}>Merkle Tree</span>
-        {displayBatch && (
-          <span style={styles.badge}>
-            Batch #{batches.length}
-          </span>
+        <div style={{ ...styles.headerIcon, background: tamperActive ? 'var(--color-critical-bg)' : 'rgba(100, 210, 255, 0.1)' }}>
+          {tamperActive ? <AlertTriangle size={14} color="var(--color-critical)" /> : <GitBranch size={14} color="var(--accent-cyan)" />}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ ...styles.title, color: tamperActive ? 'var(--color-critical)' : 'var(--text-primary)' }}>
+            {tamperActive ? 'TAMPERED INTEGRITY TREE' : 'Merkle Integrity Tree'}
+          </div>
+          <div style={styles.subtitle}>Deterministic Data Aggregation</div>
+        </div>
+        {latestBatch && (
+          <div style={styles.batchBadge}>
+            <Cpu size={10} /> BATCH #{batches.length}
+          </div>
         )}
       </div>
 
-      {/* Tree visualization */}
-      <div style={styles.treeWrap}>
-        {treeLevels.map((level, li) => (
-          <motion.div
-            key={li}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: li * 0.15 }}
-            style={{
-              ...styles.row,
-              justifyContent: level.length === 1 ? 'center' : 'space-around',
-            }}
-          >
-            {level.map((hash, hi) => (
-              <div
-                key={hi}
-                style={{
-                  ...styles.node,
-                  ...(li === treeLevels.length - 1 ? styles.rootNode : {}),
-                  ...(li === 0 ? styles.leafNode : {}),
-                }}
-              >
-                <code style={styles.hashText}>{hash}</code>
+      <div style={styles.vizArea}>
+        <div style={styles.layers}>
+          <span style={styles.layerLabel}>MERKLE ROOT</span>
+          <span style={styles.layerLabel}>INTERMEDIATE</span>
+          <span style={styles.layerLabel}>DATA LEAVES</span>
+        </div>
+
+        <svg width="300" height="180" viewBox="0 0 300 180" style={{ overflow: 'visible' }}>
+          <AnimatePresence>
+            {/* Lines */}
+            {treeData.lines.map((line, i) => {
+              const fromNode = treeData.levels.flat().find(n => n.id === line.from);
+              const toNode = treeData.levels.flat().find(n => n.id === line.to);
+              const fromPos = getPos(fromNode.level, fromNode.idx, treeData.levels[fromNode.level].length);
+              const toPos = getPos(toNode.level, toNode.idx, treeData.levels[toNode.level].length);
+              
+              const isHighlighted = hoveredNode && (hoveredNode === fromNode.id || hoveredNode === toNode.id);
+              const isCorrupted = fromNode.isCorrupted && toNode.isCorrupted;
+
+              return (
+                <motion.path
+                  key={`line-${i}-${isCorrupted}`}
+                  d={`M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}`}
+                  stroke={isCorrupted ? 'var(--color-critical)' : (isHighlighted ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)')}
+                  strokeWidth={isCorrupted || isHighlighted ? 2 : 1}
+                  strokeOpacity={isCorrupted ? 0.8 : 1}
+                  fill="none"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.8 }}
+                />
+              );
+            })}
+
+            {/* Dynamic Flow Dots (Hidden if corrupted to focus on error) */}
+            {!tamperActive && auditTrail.length > 0 && treeData.lines.map((line, i) => {
+               const fromNode = treeData.levels.flat().find(n => n.id === line.from);
+               const toNode = treeData.levels.flat().find(n => n.id === line.to);
+               const fromPos = getPos(fromNode.level, fromNode.idx, treeData.levels[fromNode.level].length);
+               const toPos = getPos(toNode.level, toNode.idx, treeData.levels[toNode.level].length);
+               return (
+                 <motion.circle
+                   key={`dot-${i}`}
+                   r="1"
+                   fill="var(--accent-cyan)"
+                   initial={{ offsetDistance: "0%" }}
+                   animate={{ offsetDistance: "100%" }}
+                   style={{ offsetPath: `path('M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}')` }}
+                   transition={{ duration: 2.5, repeat: Infinity, ease: "linear", delay: i * 0.1 }}
+                 />
+               );
+            })}
+
+            {/* Nodes */}
+            {treeData.levels.flat().map((node, i) => {
+              const pos = getPos(node.level, node.idx, treeData.levels[node.level].length);
+              const isRoot = node.level === treeData.levels.length - 1;
+              const isLeaf = node.level === 0;
+              const isCorrupted = node.isCorrupted;
+              
+              return (
+                <motion.g
+                  key={`${node.id}-${isCorrupted}`}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  onMouseEnter={() => setHoveredNode(node.id)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <circle
+                    cx={pos.x} cy={pos.y} r="3.5"
+                    fill={isCorrupted ? 'var(--color-critical)' : (isRoot ? 'var(--color-stable)' : (isLeaf ? 'var(--accent-blue)' : 'var(--accent-purple)'))}
+                    stroke={isCorrupted ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.1)'}
+                    strokeWidth="1"
+                  />
+                  <motion.rect
+                    x={pos.x - 24} y={pos.y - 8} width="48" height="16" rx="4"
+                    fill={isCorrupted ? 'rgba(255,45,85,0.2)' : (hoveredNode === node.id ? 'var(--bg-elevated)' : 'rgba(15, 21, 32, 0.8)')}
+                    stroke={isCorrupted ? 'var(--color-critical)' : (hoveredNode === node.id ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)')}
+                    animate={{ 
+                      scale: hoveredNode === node.id ? 1.15 : 1,
+                      borderColor: isCorrupted ? '#ff2d55' : undefined
+                    }}
+                  />
+                  <text
+                    x={pos.x} y={pos.y + 3}
+                    textAnchor="middle"
+                    style={{ fontSize: '7px', fill: isCorrupted ? '#ff2d55' : '#fff', fontFamily: 'var(--font-mono)', fontWeight: 600, pointerEvents: 'none' }}
+                  >
+                    {node.short}
+                  </text>
+                  {isCorrupted && (
+                    <motion.circle
+                      cx={pos.x} cy={pos.y} r="12"
+                      stroke="var(--color-critical)"
+                      strokeWidth="1"
+                      fill="none"
+                      animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    />
+                  )}
+                </motion.g>
+              );
+            })}
+          </AnimatePresence>
+        </svg>
+      </div>
+
+      <div style={styles.anchorArea}>
+        <div style={{ ...styles.anchorBox, borderColor: `${anchorColor}44`, background: `${anchorColor}11` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+            <div style={{ ...styles.statusDot, background: anchorColor, animation: (tamperActive || !latestBatch) ? 'pulse-critical 2s infinite' : 'none' }} />
+            <div>
+              <div style={{ fontSize: '9px', fontWeight: 800, color: anchorColor, letterSpacing: '1px' }}>BLOCKCHAIN ANCHOR</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                {tamperActive ? 'ANCHOR INVALID' : anchorStatus}
               </div>
-            ))}
-          </motion.div>
-        ))}
-
-        {/* Connectors (drawn between rows) */}
-        {treeLevels.length > 1 &&
-          treeLevels.slice(0, -1).map((_, li) => (
-            <div key={`conn-${li}`} style={styles.connectorRow}>
-              {Array.from({ length: Math.ceil(treeLevels[li].length / 2) }).map((_, ci) => (
-                <div key={ci} style={styles.connector}>
-                  <div style={styles.connLine}></div>
-                </div>
-              ))}
             </div>
-          ))}
-      </div>
-
-      {/* Blockchain anchor */}
-      <div style={styles.anchorRow}>
-        <div style={styles.anchorLine}></div>
-        <div style={styles.anchorBox}>
-          <Link2 size={12} />
-          <span style={styles.anchorLabel}>Blockchain Anchor</span>
-          <code style={styles.anchorHash}>
-            {displayBatch
-              ? displayBatch.tx_hash?.slice(0, 20) + '...'
-              : '0xMOCK_awaiting...'}
-          </code>
+          </div>
+          <Link2 size={14} color={anchorColor} />
+        </div>
+        
+        <div style={styles.batchDetails}>
+          <div style={styles.detailItem}>
+            <Database size={10} color="var(--text-dim)" /> 
+            <span>TX: {tamperActive ? '0xBAD_HASH...' : (latestBatch?.tx_hash?.slice(0, 16) || '0x74f2...a1c9')}</span>
+          </div>
+          <div style={styles.detailItem}>
+            <ShieldCheck size={10} color="var(--text-dim)" /> 
+            <span>{tamperActive ? 'INTEGRITY BROKEN' : (latestBatch ? 'CONFIRMED' : 'NEXT MB: 4.2s')}</span>
+          </div>
         </div>
       </div>
-
-      {/* Batch info */}
-      {displayBatch && (
-        <div style={styles.batchInfo}>
-          <span>Seq {displayBatch.start_seq}–{displayBatch.end_seq}</span>
-          <span>Root: {displayBatch.root?.slice(0, 16)}...</span>
-        </div>
-      )}
     </div>
   );
 }
 
 const styles = {
   container: {
-    background: 'var(--bg-card)',
-    borderRadius: 12,
-    border: '1px solid var(--border)',
-    padding: 16,
+    padding: '20px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 10,
+    gap: '20px',
   },
   header: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: '12px',
+  },
+  headerIcon: {
+    width: '32px', height: '32px', borderRadius: '8px',
+    background: 'rgba(100, 210, 255, 0.1)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center'
   },
   title: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: 'var(--text-primary)',
-    flex: 1,
+    fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)',
+    letterSpacing: '-0.2px'
   },
-  badge: {
-    fontSize: 10,
-    fontWeight: 600,
-    padding: '2px 8px',
-    borderRadius: 10,
-    background: 'rgba(99, 102, 241, 0.15)',
-    color: '#818cf8',
+  subtitle: {
+    fontSize: '10px', color: 'var(--text-dim)',
+    fontFamily: 'var(--font-mono)'
   },
-  treeWrap: {
-    display: 'flex',
-    flexDirection: 'column-reverse',
-    gap: 4,
-    padding: '8px 0',
+  batchBadge: {
+    fontSize: '9px', fontWeight: 800, background: 'rgba(45, 212, 191, 0.1)',
+    color: 'var(--color-brand-accent)', padding: '4px 10px', borderRadius: '6px',
+    display: 'flex', alignItems: 'center', gap: '4px'
+  },
+  vizArea: {
     position: 'relative',
-  },
-  row: {
+    height: '180px',
     display: 'flex',
-    gap: 6,
-    justifyContent: 'space-around',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  node: {
-    padding: '4px 8px',
-    borderRadius: 6,
-    background: 'var(--bg-secondary)',
-    border: '1px solid var(--border)',
+  layers: {
+    position: 'absolute',
+    left: '0', top: '0', bottom: '0',
+    display: 'flex', flexDirection: 'column',
+    justifyContent: 'space-between',
+    padding: '10px 0',
+    pointerEvents: 'none'
   },
-  rootNode: {
-    background: 'rgba(16, 185, 129, 0.12)',
-    border: '1px solid rgba(16, 185, 129, 0.3)',
+  layerLabel: {
+    fontSize: '8px', color: 'var(--text-dim)',
+    fontFamily: 'var(--font-mono)', letterSpacing: '1px',
+    transform: 'rotate(-90deg) translateX(0)',
+    transformOrigin: 'left bottom',
+    whiteSpace: 'nowrap'
   },
-  leafNode: {
-    background: 'rgba(99, 102, 241, 0.08)',
-    border: '1px solid rgba(99, 102, 241, 0.2)',
-  },
-  hashText: {
-    fontSize: 9,
-    fontFamily: 'monospace',
-    color: 'var(--text-secondary)',
-  },
-  connectorRow: {
-    display: 'flex',
-    justifyContent: 'space-around',
-    height: 8,
-  },
-  connector: {
-    display: 'flex',
-    justifyContent: 'center',
-  },
-  connLine: {
-    width: 1,
-    height: '100%',
-    background: 'var(--border)',
-  },
-  anchorRow: {
+  anchorArea: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-  },
-  anchorLine: {
-    width: 1,
-    height: 12,
-    background: 'var(--border)',
+    gap: '12px'
   },
   anchorBox: {
+    padding: '12px 16px',
+    borderRadius: '12px',
+    border: '1px solid',
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
-    padding: '6px 12px',
-    borderRadius: 8,
-    background: 'rgba(245, 158, 11, 0.08)',
-    border: '1px solid rgba(245, 158, 11, 0.25)',
-    color: '#f59e0b',
-    fontSize: 11,
   },
-  anchorLabel: {
-    fontWeight: 600,
+  statusDot: {
+    width: '8px', height: '8px', borderRadius: '50%',
+    boxShadow: '0 0 8px currentColor'
   },
-  anchorHash: {
-    fontFamily: 'monospace',
-    fontSize: 10,
-    color: 'var(--text-secondary)',
+  batchDetails: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+    padding: '0 4px'
   },
-  batchInfo: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: 10,
-    fontFamily: 'monospace',
-    color: 'var(--text-secondary)',
-    padding: '4px 0',
-  },
+  detailItem: {
+    display: 'flex', alignItems: 'center', gap: '6px',
+    fontSize: '10px', color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-mono)'
+  }
 };
