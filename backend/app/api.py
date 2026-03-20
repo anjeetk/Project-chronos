@@ -25,13 +25,28 @@ from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnec
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+import traceback
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
-from .config import BASE_DATA_DIR
+from .config import BASE_DATA_DIR, IS_VERCEL
 from .storage import load_manifest, save_manifest, load_json, save_json
 from .verifier import verify_session
 from .capture import start_pipeline as camera_start, get_jpeg, get_mode, is_running as camera_is_running
 
 app = FastAPI(title="Surgical Black Box API", version="2.0.0")
+
+if IS_VERCEL:
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "message": str(exc),
+                "traceback": traceback.format_exc(),
+                "path": request.url.path
+            }
+        )
 
 # ── Deployment: Serve Frontend Static Files ──
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

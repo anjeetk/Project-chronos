@@ -1,11 +1,20 @@
 import sys
 import os
 
-# Add backend directory to path so we can import from app
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
+# Root directory is the parent of api/
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
-from app.api import app
+# Ensure backend directory is also in path so "app" is discoverable
+BACKEND_DIR = os.path.join(ROOT, "backend")
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 
-# Vercel needs "app" to be defined
-# We use the app from our FastAPI submodule
+try:
+    from app.api import app
+except ImportError:
+    # Fallback for different bundling structures
+    from backend.app.api import app
+
 handler = app

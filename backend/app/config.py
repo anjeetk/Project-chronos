@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Directories
-BASE_DATA_DIR = os.getenv("BASE_DATA_DIR", "data/sessions")
+IS_VERCEL = os.getenv("VERCEL") == "1"
+BASE_DATA_DIR = os.getenv("BASE_DATA_DIR", "/tmp/sessions" if IS_VERCEL else "data/sessions")
 
 # Capture
 FPS_SAMPLE = int(os.getenv("FPS_SAMPLE", "1"))
