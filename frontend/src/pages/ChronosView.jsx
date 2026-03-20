@@ -165,7 +165,7 @@ export default function ChronosView({ onRiskChange }) {
               letterSpacing: '2px',
               color: 'var(--text-secondary)',
               textTransform: 'uppercase',
-            }}>Synapse GTB</h2>
+            }}>Project Chronos</h2>
             <h1 style={{
               fontSize: '22px',
               fontWeight: 700,
