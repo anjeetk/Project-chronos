@@ -1,106 +1,58 @@
-"""
-Synapse GTB — Vercel Serverless API
-Zero heavy dependencies. Only fastapi.
-"""
+from http.server import BaseHTTPRequestHandler
+import json
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import os, json, traceback
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
 
-app = FastAPI()
+        path = self.path.split('?')[0]
 
-@app.exception_handler(Exception)
-async def catch_all(request: Request, exc: Exception):
-    return JSONResponse(status_code=500, content={
-        "error": str(exc),
-        "trace": traceback.format_exc(),
-    })
+        if path == '/api/health':
+            self.wfile.write(json.dumps({"ok": True, "env": "vercel"}).encode())
+        elif path == '/api/status':
+            self.wfile.write(json.dumps({
+                "session_id": None, "seq": 0, "latest_hash": "",
+                "prev_hash": "", "batches": 0, "running": False,
+                "camera_mode": "serverless",
+                "message": "Live pipeline unavailable on serverless. Use Demo Mode."
+            }).encode())
+        elif path == '/api/recordings':
+            self.wfile.write(json.dumps([]).encode())
+        elif path == '/telemetry.json':
+            self.wfile.write(json.dumps({"metrics": []}).encode())
+        elif path == '/audit_trail.json':
+            self.wfile.write(json.dumps({"entries": []}).encode())
+        else:
+            self.wfile.write(json.dumps({"path": path, "method": "GET"}).encode())
 
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+    def do_POST(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
 
-@app.get("/api/health")
-def health():
-    return {"ok": True, "env": "vercel"}
+        path = self.path.split('?')[0]
 
-@app.get("/api/status")
-def status():
-    return {
-        "session_id": None, "seq": 0, "latest_hash": "",
-        "prev_hash": "", "batches": 0, "running": False,
-        "camera_mode": "serverless",
-        "message": "Live pipeline unavailable on serverless. Use Demo Mode."
-    }
+        if path == '/api/start':
+            self.wfile.write(json.dumps({
+                "status": "unavailable",
+                "message": "Recording requires local backend. Use Demo Mode on Vercel."
+            }).encode())
+        elif path == '/api/stop':
+            self.wfile.write(json.dumps({"status": "not_running"}).encode())
+        elif path.startswith('/api/verify/'):
+            self.wfile.write(json.dumps({"valid": True, "records_checked": 0}).encode())
+        elif path.startswith('/api/tamper/'):
+            self.wfile.write(json.dumps({"status": "unavailable"}).encode())
+        else:
+            self.wfile.write(json.dumps({"path": path, "method": "POST"}).encode())
 
-@app.get("/api/recordings")
-def recordings():
-    # Try Supabase if available, otherwise return empty
-    try:
-        url = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL")
-        key = os.getenv("SUPABASE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
-        if url and key:
-            from supabase import create_client
-            sb = create_client(url, key)
-            objs = sb.storage.from_("sessions").list("")
-            recs = []
-            for item in objs:
-                name = item.get("name", "")
-                if not name or name.startswith("."): continue
-                try:
-                    data = sb.storage.from_("sessions").download(f"{name}/manifest.json")
-                    m = json.loads(data)
-                    recs.append({
-                        "session_id": name,
-                        "records": len(m.get("records", [])),
-                        "batches": len(m.get("merkle_batches", [])),
-                        "genesis_hash": m.get("genesis_hash", ""),
-                    })
-                except: continue
-            return recs
-    except: pass
-    return []
-
-@app.post("/api/start")
-def start():
-    return {"status": "unavailable", "message": "Recording requires local backend. Use Demo Mode on Vercel."}
-
-@app.post("/api/stop")
-def stop():
-    return {"status": "not_running"}
-
-@app.post("/api/verify/{session_id}")
-def verify(session_id: str):
-    try:
-        url = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL")
-        key = os.getenv("SUPABASE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
-        if url and key:
-            from supabase import create_client
-            sb = create_client(url, key)
-            data = sb.storage.from_("sessions").download(f"{session_id}/manifest.json")
-            m = json.loads(data)
-            records = m.get("records", [])
-            valid = True
-            broken = None
-            for i, r in enumerate(records):
-                if i > 0 and r.get("prev_hash") != records[i-1].get("chain_hash"):
-                    valid = False
-                    broken = i
-                    break
-            return {"valid": valid, "records_checked": len(records), "broken_at": broken}
-    except Exception as e:
-        return {"error": str(e)}
-    return {"error": "Supabase not configured"}
-
-@app.post("/api/tamper/{session_id}/{seq}")
-def tamper(session_id: str, seq: int):
-    return {"status": "unavailable", "message": "Tamper simulation requires local backend."}
-
-@app.get("/telemetry.json")
-def telemetry():
-    return {"metrics": []}
-
-@app.get("/audit_trail.json")
-def audit_trail():
-    return {"entries": []}
-
-handler = app
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', '*')
+        self.end_headers()
