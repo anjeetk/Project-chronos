@@ -1,4 +1,4 @@
-# 🧠 Synapse_GTB — Surgical Black Box & Sentinel Monitor
+# 🧠 Vital_Shield AI — Surgical Black Box & Sentinel Monitor
 
 <div align="center">
 
